@@ -18,7 +18,7 @@ import (
 	"github.com/charlievieth/fastwalk"
 	"github.com/dominikbraun/graph"
 	"github.com/dominikbraun/graph/draw"
-	"github.com/getsolus/infrastructure-tooling/autobuild/ypkg"
+	"github.com/GZGavinZhao/autobuild/ypkg"
 	"github.com/getsolus/libeopkg/index"
 	"github.com/getsolus/libeopkg/pspec"
 	"golang.org/x/exp/slices"

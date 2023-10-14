@@ -1,4 +1,4 @@
-module github.com/getsolus/infrastructure-tooling/autobuild
+module github.com/GZGavinZhao/autobuild
 
 go 1.20
 
