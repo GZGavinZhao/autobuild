@@ -12,50 +12,28 @@ import (
 
 var (
 	cmdQuery = &cobra.Command{
-		Use:   "query <path-to-sources> <path-to-index> [packages]",
+		Use:   "query [packages]",
 		Short: "Query the build order of the given packages or the currently unsynced packages",
-		Run: runQuery,
+		Run:   runQuery,
 	}
 )
 
+func init() {
+	pathsInit(cmdQuery)
+}
+
 func runQuery(cmd *cobra.Command, args []string) {
-	sourcesPath := args[0]
-	indexPath := args[1]
+	// sourcesPath := args[0]
+	// indexPath := args[1]
 
-	nameToSrcIdx := make(map[string]int)
-
-	srcPkgs, err := common.ReadSrcPkgs(sourcesPath)
+	srcPkgs, nameToSrcIdx, depGraph, err := common.PrepareSrcAndDepGraph(sourcesPath, indexPath)
 	if err != nil {
-		waterlog.Fatalf("Failed to walk through sources: %s\n", err)
+		waterlog.Fatalf("Failed to parse and construct dependency graph: %s\n", err)
 	}
-
-	common.MapProvidesToIdx(srcPkgs[:], nameToSrcIdx)
-
-	// Iterate through every source package, and check if all of their
-	// dependencies are present in the source repository.
-	//
-	// If not, then it's possible that missing dependency is a new package that
-	// needs to be built to generate the `pspec_x86_64.xml` file that shows all
-	// the binary packages that a source package provides. This usually happens
-	// when `a` is a new package that has yet to be built locally and some
-	// package `b` depends on `a-devel`.
-	for idx := range srcPkgs {
-		srcPkgs[idx].Resolve(nameToSrcIdx)
-	}
-
-	waterlog.Goodln("Dependency resolving complete. Now scanning binary index...")
-
-	err = common.CheckSrcPkgsSynced(indexPath, srcPkgs[:], nameToSrcIdx)
-	if err != nil {
-		waterlog.Fatalf("Failed to compare source packages with binary index %s: %s\n", indexPath, err)
-	}
-	waterlog.Goodln("Scanning binary index complete. Constructing dependency graph...")
-
-	depGraph, err := common.BuildGraph(srcPkgs[:], nameToSrcIdx)
 
 	qset := map[int]bool{}
-	if len(args) > 3 {
-		for _, pkg := range args[2:] {
+	if len(args) > 0 {
+		for _, pkg := range args {
 			idx, ok := nameToSrcIdx[pkg]
 			if !ok {
 				waterlog.Fatalf("Unable to find package", pkg)
@@ -69,7 +47,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 		}
 	} else {
 		for idx, pkg := range srcPkgs {
-			if !pkg.Synced /* || !pkg.Resolved */ {
+			if !pkg.Synced && pkg.Resolved /* || !pkg.Resolved */ {
 				qset[idx] = true
 			}
 		}

@@ -50,8 +50,8 @@ func CheckSrcPkgsSynced(indexPath string, srcPkgs []Package, nameToSrcIdx map[st
 	return nil
 }
 
-func BuildGraph(srcPkgs []Package, nameToSrcIdx map[string]int) (depGraph graph.Graph[int, int], err error) {
-	depGraph = graph.New(graph.IntHash, graph.Directed(), graph.PreventCycles())
+func BuildDepGraph(srcPkgs []Package, nameToSrcIdx map[string]int) (depGraph graph.Graph[int, int], err error) {
+	depGraph = graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
 
 	for pkgIdx, pkg := range srcPkgs {
 		attrsFunc := func(p *graph.VertexProperties) {
