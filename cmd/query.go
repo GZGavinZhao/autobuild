@@ -2,15 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/dominikbraun/graph"
+	"github.com/dominikbraun/graph/draw"
 	"github.com/spf13/cobra"
 )
 
 var (
+	dotPath  string
 	cmdQuery = &cobra.Command{
 		Use:   "query [packages]",
 		Short: "Query the build order of the given packages or the currently unsynced packages",
@@ -20,12 +23,10 @@ var (
 
 func init() {
 	pathsInit(cmdQuery)
+	cmdQuery.LocalFlags().StringVar(&dotPath, "dot", "", "stores the final build graph at the specified location in the DOT format")
 }
 
 func runQuery(cmd *cobra.Command, args []string) {
-	// sourcesPath := args[0]
-	// indexPath := args[1]
-
 	srcPkgs, nameToSrcIdx, depGraph, err := common.PrepareSrcAndDepGraph(sourcesPath, indexPath)
 	if err != nil {
 		waterlog.Fatalf("Failed to parse and construct dependency graph: %s\n", err)
@@ -60,8 +61,10 @@ func runQuery(cmd *cobra.Command, args []string) {
 		waterlog.Fatalf("Failed to lift final graph from requested nodes: %s\n", err)
 	}
 
-	// fingDot, _ := os.Create("./fing.gv")
-	// _ = draw.DOT(fing, fingDot)
+	if len(dotPath) > 0 {
+		fingDot, _ := os.Create(dotPath)
+		_ = draw.DOT(fing, fingDot)
+	}
 
 	order, err := graph.TopologicalSort(fing)
 	if err != nil {

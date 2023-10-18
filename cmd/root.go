@@ -7,11 +7,6 @@ import (
 )
 
 var (
-	quiet       bool
-	verbose     bool
-	sourcesPath string
-	indexPath   string
-
 	rootCmd = &cobra.Command{
 		Use:   "autobuild",
 		Short: "Automatically query, build, and push packages elegantly.",
@@ -31,16 +26,9 @@ var (
 func init() {
 	rootCmd.AddCommand(cmdQuery)
 
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Quiet output")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet output")
 	rootCmd.MarkFlagsMutuallyExclusive("verbose", "quiet")
-}
-
-func pathsInit(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&sourcesPath, "sources", "s", "", "Path to the source directory (containing Taskfile.yml)")
-	cmd.MarkFlagRequired("sources")
-	cmd.Flags().StringVarP(&indexPath, "index", "i", "", "Path to the eopkg binary index to compare against")
-	cmd.MarkFlagRequired("index")
 }
 
 func Execute() {
