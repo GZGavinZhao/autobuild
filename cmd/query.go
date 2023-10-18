@@ -71,9 +71,9 @@ func runQuery(cmd *cobra.Command, args []string) {
 		waterlog.Fatalf("Failed to get topological sort order: %s\n", err)
 	}
 
-	waterlog.Good("Build order:")
+	waterlog.Good("Build order: ")
 	for _, orderIdx := range order {
-		fmt.Printf(" %s", srcPkgs[orderIdx].Name)
+		fmt.Printf("%s ", srcPkgs[orderIdx].Name)
 	}
 	fmt.Println()
 }
