@@ -10,10 +10,14 @@ import (
 )
 
 type PackageYML struct {
-	Name      string   `yaml:"name"`
-	Version   string   `yaml:"version"`
-	Release   int      `yaml:"release"`
-	BuildDeps []string `yaml:"builddeps"`
+	Name        string   `yaml:"name"`
+	Version     string   `yaml:"version"`
+	Release     int      `yaml:"release"`
+	BuildDeps   []string `yaml:"builddeps"`
+	Environment string   `yaml:"environment"`
+	Setup       string   `yaml:"setup"`
+	Build       string   `yaml:"build"`
+	Install     string   `yaml:"install"`
 }
 
 func Load(path string) (pkg PackageYML, err error) {
