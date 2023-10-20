@@ -46,9 +46,11 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 	}
 
 	for node := range adjMap {
-		err = liftDfs(node, node, choose, g, visited, &res)
-		if err != nil {
-			return
+		if choose(node) {
+			err = liftDfs(node, node, choose, g, visited, &res)
+			if err != nil {
+				return
+			}
 		}
 	}
 
