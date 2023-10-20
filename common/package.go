@@ -1,3 +1,7 @@
+// spdx-filecopyrighttext: copyright © 2020-2023 serpent os developers
+//
+// spdx-license-identifier: mpl-2.0
+
 package common
 
 import (
