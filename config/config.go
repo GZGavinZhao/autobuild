@@ -11,8 +11,8 @@ import (
 )
 
 type AutobuildConfig struct {
-	ignore bool         `yaml:"ignore"`
-	solver SolverConfig `yaml:"solver"`
+	Ignore bool         `yaml:"ignore"`
+	Solver SolverConfig `yaml:"solver"`
 }
 
 func Load(path string) (cfg AutobuildConfig, err error) {

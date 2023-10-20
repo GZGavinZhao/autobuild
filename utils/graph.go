@@ -69,7 +69,10 @@ func liftDfs(node int, parent int, choose func(int) bool, g *graph.Graph[int, in
 		nextp := parent
 		if choose(adj) {
 			nextp = adj
-			(*res).AddEdge(parent, adj)
+			err = (*res).AddEdge(parent, adj)
+			if err != nil {
+				return
+			}
 		}
 
 		err = liftDfs(adj, nextp, choose, g, visited, res)

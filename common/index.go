@@ -55,7 +55,7 @@ func CheckSrcPkgsSynced(indexPath string, srcPkgs []Package, nameToSrcIdx map[st
 }
 
 func BuildDepGraph(srcPkgs []Package, nameToSrcIdx map[string]int) (depGraph graph.Graph[int, int], err error) {
-	depGraph = graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
+	depGraph = graph.New(graph.IntHash, graph.Directed(), graph.PreventCycles())
 
 	for pkgIdx, pkg := range srcPkgs {
 		attrsFunc := func(p *graph.VertexProperties) {

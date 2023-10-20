@@ -5,11 +5,14 @@
 package common
 
 import (
+	"errors"
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"slices"
 	"sync"
 
+	"github.com/GZGavinZhao/autobuild/config"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/charlievieth/fastwalk"
 )
@@ -34,6 +37,18 @@ func ReadSrcPkgs(path string) (pkgs []Package, err error) {
 		// Some hard-coded problematic packages
 		if slices.Contains(badPackages[:], filepath.Base(path)) {
 			return nil
+		}
+
+		cfgFile := filepath.Join(path, "autobuild.yml")
+		if utils.FileExists(cfgFile) {
+			abConfig, err := config.Load(cfgFile)
+			if err != nil {
+				return errors.New(fmt.Sprintf("Fail to load autobuild config file: %s", err))
+			}
+
+			if abConfig.Ignore {
+				return filepath.SkipDir
+			}
 		}
 
 		// TODO: handle legacy XML packages too

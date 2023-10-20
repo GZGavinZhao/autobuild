@@ -5,5 +5,5 @@
 package config
 
 type SolverConfig struct {
-	ignore []string `yaml:"ignore"`
+	Ignore []string `yaml:"ignore"`
 }

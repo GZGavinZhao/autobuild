@@ -12,6 +12,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/DataDrake/waterlog"
+	"github.com/GZGavinZhao/autobuild/config"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/GZGavinZhao/autobuild/ypkg"
 	"github.com/getsolus/libeopkg/pspec"
@@ -57,6 +59,7 @@ func ParsePackage(dir string) (pkg Package, err error) {
 	// Check if the given directory contains a package definition
 	pkgFile := filepath.Join(dir, "package.yml")
 	pspecFile := filepath.Join(dir, "pspec_x86_64.xml")
+	cfgFile := filepath.Join(dir, "autobuild.yml")
 
 	ypkgYml, err := ypkg.Load(pkgFile)
 	if err != nil {
@@ -89,6 +92,29 @@ func ParsePackage(dir string) (pkg Package, err error) {
 			pkg.Provides = append(pkg.Provides, pcProvide)
 		}
 	}
+
+	if !utils.FileExists(cfgFile) {
+		return
+	}
+
+	abConfig, err := config.Load(cfgFile)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to load autobuild config file for %s: %s", dir, err))
+	}
+
+	ignoreRegexes := []regexp.Regexp{}
+	for _, ignore := range abConfig.Solver.Ignore {
+		ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+	}
+	pkg.BuildDeps = utils.Filter(pkg.BuildDeps, func(dep string) bool {
+		for _, regex := range ignoreRegexes {
+			if regex.FindString(dep) != "" {
+				waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, pkg.Name, regex.String())
+				return false
+			}
+		}
+		return true
+	})
 
 	return
 }
