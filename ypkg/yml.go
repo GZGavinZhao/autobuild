@@ -13,7 +13,9 @@ type PackageYML struct {
 	Name        string   `yaml:"name"`
 	Version     string   `yaml:"version"`
 	Release     int      `yaml:"release"`
+	RunDeps     []string `yaml:"rundeps"`
 	BuildDeps   []string `yaml:"builddeps"`
+	CheckDeps   []string `yaml:"checkdeps"`
 	Environment string   `yaml:"environment"`
 	Setup       string   `yaml:"setup"`
 	Build       string   `yaml:"build"`
