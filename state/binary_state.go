@@ -33,10 +33,6 @@ func (s *BinaryState) BuildGraph() {
 	panic("Not Implmeneted!")
 }
 
-func (s *BinaryState) Changed(other *State) (res []Diff) {
-	panic("Not Implmeneted!")
-}
-
 func LoadBinary(path string) (state *BinaryState, err error) {
 	state = &BinaryState{}
 	state.nameToSrcIdx = make(map[string]int)

@@ -40,7 +40,7 @@ func ReadSrcPkgs(path string) (pkgs []Package, err error) {
 		}
 
 		cfgFile := filepath.Join(path, "autobuild.yml")
-		if utils.FileExists(cfgFile) {
+		if utils.PathExists(cfgFile) {
 			abConfig, err := config.Load(cfgFile)
 			if err != nil {
 				return errors.New(fmt.Sprintf("Fail to load autobuild config file: %s", err))
@@ -53,7 +53,7 @@ func ReadSrcPkgs(path string) (pkgs []Package, err error) {
 
 		// TODO: handle legacy XML packages too
 		pkgFile := filepath.Join(path, "package.yml")
-		if !utils.FileExists(pkgFile) {
+		if !utils.PathExists(pkgFile) {
 			return nil
 		}
 

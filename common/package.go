@@ -77,7 +77,7 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		Synced:    false,
 	}
 
-	if !utils.FileExists(pspecFile) {
+	if !utils.PathExists(pspecFile) {
 		return
 	}
 
@@ -94,7 +94,7 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		}
 	}
 
-	if !utils.FileExists(cfgFile) {
+	if !utils.PathExists(cfgFile) {
 		return
 	}
 

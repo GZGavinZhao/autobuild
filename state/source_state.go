@@ -50,38 +50,13 @@ func (s *SourceState) BuildGraph() {
 	panic("Not Implmeneted!")
 }
 
-func (cur SourceState) Changed(old *State) (res []Diff) {
-	for idx, pkg := range cur.packages {
-		oldIdx, found := (*old).NameToSrcIdx()[pkg.Name]
-
-		if !found {
-			res = append(res, Diff{
-				Idx:    idx,
-				RelNum: pkg.Release,
-				Ver:    pkg.Version,
-			})
-			continue
-		}
-
-		oldPkg := (*old).Packages()[oldIdx]
-		if oldPkg.Release != pkg.Release || oldPkg.Version != pkg.Version {
-			res = append(res, Diff{
-				Idx:       idx,
-				OldIdx:    oldIdx,
-				RelNum:    pkg.Release,
-				OldRelNum: oldPkg.Release,
-				Ver:       pkg.Version,
-				OldVer:    oldPkg.Version,
-			})
-		}
-	}
-
-	return
-}
-
 func LoadSource(path string) (state *SourceState, err error) {
 	state = &SourceState{}
 	state.nameToSrcIdx = make(map[string]int)
+
+	if utils.PathExists(filepath.Join(path, ".git")) {
+		state.isGit = true
+	}
 
 	walkConf := fastwalk.Config{
 		Follow: false,
@@ -100,7 +75,7 @@ func LoadSource(path string) (state *SourceState, err error) {
 		}
 
 		cfgFile := filepath.Join(path, "autobuild.yml")
-		if utils.FileExists(cfgFile) {
+		if utils.PathExists(cfgFile) {
 			abConfig, err := config.Load(cfgFile)
 			if err != nil {
 				return errors.New(fmt.Sprintf("LoadSource: failed to load autobuild config file: %s", err))
@@ -113,7 +88,7 @@ func LoadSource(path string) (state *SourceState, err error) {
 
 		// TODO: handle legacy XML packages too
 		pkgFile := filepath.Join(path, "package.yml")
-		if !utils.FileExists(pkgFile) {
+		if !utils.PathExists(pkgFile) {
 			return nil
 		}
 

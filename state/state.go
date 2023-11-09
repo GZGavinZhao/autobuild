@@ -13,14 +13,33 @@ type State interface {
 	Packages() []common.Package
 	NameToSrcIdx() map[string]int
 	DepGraph() *graph.Graph[int, int]
-	Changed(*State) []Diff
 }
 
-type Diff struct {
-	Idx       int
-	OldIdx    int
-	RelNum    int
-	OldRelNum int
-	Ver       string
-	OldVer    string
+func Changed(old *State, cur *State) (res []Diff) {
+	for idx, pkg := range (*cur).Packages() {
+		oldIdx, found := (*old).NameToSrcIdx()[pkg.Name]
+
+		if !found {
+			res = append(res, Diff{
+				Idx:    idx,
+				RelNum: pkg.Release,
+				Ver:    pkg.Version,
+			})
+			continue
+		}
+
+		oldPkg := (*old).Packages()[oldIdx]
+		if oldPkg.Release != pkg.Release || oldPkg.Version != pkg.Version {
+			res = append(res, Diff{
+				Idx:       idx,
+				OldIdx:    oldIdx,
+				RelNum:    pkg.Release,
+				OldRelNum: oldPkg.Release,
+				Ver:       pkg.Version,
+				OldVer:    oldPkg.Version,
+			})
+		}
+	}
+
+	return
 }

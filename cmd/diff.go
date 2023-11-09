@@ -62,7 +62,7 @@ func runDiff(cmd *cobra.Command, args []string) {
 	waterlog.Goodln("Successfully parsed new state!")
 
 	waterlog.Infoln("Diffing...")
-	for _, diff := range newState.Changed(&oldState) {
+	for _, diff := range state.Changed(&oldState, &newState) {
 		name := newState.Packages()[diff.Idx].Name
 
 		if diff.OldRelNum == 0 {
