@@ -50,7 +50,7 @@ func (s *SourceState) BuildGraph() {
 	panic("Not Implmeneted!")
 }
 
-func (cur *SourceState) Changed(old *State) (res []Diff) {
+func (cur SourceState) Changed(old *State) (res []Diff) {
 	for idx, pkg := range cur.packages {
 		oldIdx, found := (*old).NameToSrcIdx()[pkg.Name]
 
@@ -71,7 +71,7 @@ func (cur *SourceState) Changed(old *State) (res []Diff) {
 				RelNum:    pkg.Release,
 				OldRelNum: oldPkg.Release,
 				Ver:       pkg.Version,
-				OldVer:    pkg.Version,
+				OldVer:    oldPkg.Version,
 			})
 		}
 	}
@@ -79,7 +79,10 @@ func (cur *SourceState) Changed(old *State) (res []Diff) {
 	return
 }
 
-func LoadSource(path string) (state SourceState, err error) {
+func LoadSource(path string) (state *SourceState, err error) {
+	state = &SourceState{}
+	state.nameToSrcIdx = make(map[string]int)
+
 	walkConf := fastwalk.Config{
 		Follow: false,
 	}
@@ -141,5 +144,6 @@ func LoadSource(path string) (state SourceState, err error) {
 		state.packages[idx].Resolve(state.nameToSrcIdx)
 	}
 
+	// fmt.Println("result:", state)
 	return
 }
