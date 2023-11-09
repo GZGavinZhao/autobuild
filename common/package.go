@@ -16,6 +16,7 @@ import (
 	"github.com/GZGavinZhao/autobuild/config"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/GZGavinZhao/autobuild/ypkg"
+	"github.com/getsolus/libeopkg/index"
 	"github.com/getsolus/libeopkg/pspec"
 )
 
@@ -141,4 +142,14 @@ func getPcProvides(pkg *pspec.Package) []string {
 	}
 
 	return provides
+}
+
+func ParseIndexPackage(ipkg index.Package) (pkg Package, err error) {
+	pkg.Name = ipkg.Name
+
+	latest := ipkg.History[0]
+	pkg.Release = latest.Release
+	pkg.Version = latest.Version
+
+	return
 }

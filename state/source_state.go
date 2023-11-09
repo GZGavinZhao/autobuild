@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: Copyright © 2020-2023 Serpent OS Developers
+//
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -43,7 +47,7 @@ func (s *SourceState) IsGit() bool {
 }
 
 func (s *SourceState) BuildGraph() {
-
+	panic("Not Implmeneted!")
 }
 
 func (cur *SourceState) Changed(old *State) (res []Diff) {
@@ -124,6 +128,13 @@ func LoadSource(path string) (state SourceState, err error) {
 
 	if err != nil {
 		return
+	}
+
+	for idx, pkg := range state.packages {
+		state.nameToSrcIdx[pkg.Name] = idx
+		for _, name := range pkg.Provides {
+			state.nameToSrcIdx[name] = idx
+		}
 	}
 
 	for idx := range state.packages {
