@@ -12,3 +12,23 @@ type Diff struct {
 	Ver       string
 	OldVer    string
 }
+
+func (d Diff) IsSame() bool {
+	return d.RelNum == d.OldRelNum && d.Ver == d.OldVer
+}
+
+func (d Diff) IsSameRel() bool {
+	return d.RelNum == d.OldRelNum
+}
+
+func (d Diff) IsNewRel() bool {
+	return d.RelNum > d.OldRelNum
+}
+
+func (d Diff) IsUpdate() bool {
+	return d.IsNewRel() && d.RelNum != d.OldRelNum
+}
+
+func (d Diff) IsDowngrade() bool {
+	return d.RelNum < d.OldRelNum
+}

@@ -5,8 +5,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/spf13/cobra"
@@ -25,39 +23,20 @@ func init() {
 }
 
 func runDiff(cmd *cobra.Command, args []string) {
-	olds := strings.Split(args[0], ":")
-	news := strings.Split(args[1], ":")
+	oldTPath := args[0]
+	newTPath := args[1]
 
 	var oldState, newState state.State
-	var err error
 
-	if olds[0] == "src" {
-		oldState, err = state.LoadSource(olds[1])
-
-		if err != nil {
-			waterlog.Fatalf("Failed to load old source: %s\n", err)
-		}
-	} else if olds[0] == "bin" {
-		oldState, err = state.LoadBinary(olds[1])
-
-		if err != nil {
-			waterlog.Fatalf("Failed to load old binary index: %s\n", err)
-		}
+	oldState, err := state.LoadState(oldTPath)
+	if err != nil {
+		waterlog.Fatalf("Failed to load old state %s: %s\n", oldTPath, err)
 	}
 	waterlog.Goodln("Successfully parsed old state!")
 
-	if news[0] == "src" {
-		newState, err = state.LoadSource(news[1])
-
-		if err != nil {
-			waterlog.Fatalf("Failed to load old source: %s\n", err)
-		}
-	} else if news[0] == "bin" {
-		newState, err = state.LoadBinary(news[1])
-
-		if err != nil {
-			waterlog.Fatalf("Failed to load old binary index: %s\n", err)
-		}
+	newState, err = state.LoadState(newTPath)
+	if err != nil {
+		waterlog.Fatalf("Failed to load new state %s: %s\n", newTPath, err)
 	}
 	waterlog.Goodln("Successfully parsed new state!")
 

@@ -5,14 +5,48 @@
 package state
 
 import (
+	"errors"
+	"slices"
+	"strings"
+
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/dominikbraun/graph"
+)
+
+var (
+	InvalidTPathError error = errors.New("Invalid tpath! Must be in the form \"[src|bin]:path\"!")
 )
 
 type State interface {
 	Packages() []common.Package
 	NameToSrcIdx() map[string]int
 	DepGraph() *graph.Graph[int, int]
+}
+
+func ValidTPath(tpath string) bool {
+	splitted := strings.Split(tpath, ":")
+
+	if len(splitted) > 2 {
+		return false
+	}
+
+	return slices.Contains([]string{"src", "bin"}, splitted[0])
+}
+
+func LoadState(tpath string) (state State, err error) {
+	if !ValidTPath(tpath) {
+		err = InvalidTPathError
+		return
+	}
+
+	splitted := strings.Split(tpath, ":")
+	if splitted[0] == "src" {
+		state, err = LoadSource(splitted[1])
+	} else {
+		state, err = LoadBinary(splitted[1])
+	}
+
+	return
 }
 
 func Changed(old *State, cur *State) (res []Diff) {
