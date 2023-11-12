@@ -39,6 +39,9 @@ func (s *SourceState) NameToSrcIdx() map[string]int {
 }
 
 func (s *SourceState) DepGraph() *graph.Graph[int, int] {
+	if s.depGraph == nil {
+		s.buildGraph()
+	}
 	return s.depGraph
 }
 
@@ -46,8 +49,47 @@ func (s *SourceState) IsGit() bool {
 	return s.isGit
 }
 
-func (s *SourceState) BuildGraph() {
-	panic("Not Implmeneted!")
+func (s *SourceState) buildGraph() {
+	g := graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
+
+	for pkgIdx, pkg := range s.packages {
+		attrsFunc := func(p *graph.VertexProperties) {
+			p.Attributes["label"] = fmt.Sprintf("%s %d", pkg.Name, pkgIdx)
+			p.Attributes["color"] = "2"
+			p.Attributes["fillcolor"] = "1"
+			if pkg.Synced {
+				// if !pkg.Resolved {
+				// 	waterlog.Fatalf("Package %s is synced but not all of its dependencies are solved!", pkg.Name)
+				// }
+				p.Attributes["colorscheme"] = "greens3"
+				p.Attributes["style"] = "filled"
+			} else if !pkg.Resolved {
+				p.Attributes["colorscheme"] = "reds3"
+				p.Attributes["style"] = "filled"
+			} else if !pkg.Synced {
+				p.Attributes["colorscheme"] = "ylorbr3"
+				p.Attributes["style"] = "filled"
+			}
+		}
+
+		g.AddVertex(pkgIdx, attrsFunc)
+	}
+
+	for pkgIdx, pkg := range s.packages {
+		for _, dep := range pkg.BuildDeps {
+			depIdx, depFound := s.nameToSrcIdx[dep]
+			if !depFound {
+				// waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Name)
+			} else if pkgIdx != depIdx {
+				err := g.AddEdge(depIdx, pkgIdx)
+				if err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+					panic(errors.New(fmt.Sprintf("Failed to create edge from %s to %s: %s\n", dep, pkg.Name, err)))
+				}
+			}
+		}
+	}
+
+	s.depGraph = &g
 }
 
 func LoadSource(path string) (state *SourceState, err error) {

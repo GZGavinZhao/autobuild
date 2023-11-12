@@ -5,9 +5,14 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/state"
+	"github.com/GZGavinZhao/autobuild/utils"
+	"github.com/dominikbraun/graph"
+	"github.com/dominikbraun/graph/draw"
 	"github.com/spf13/cobra"
 )
 
@@ -47,6 +52,7 @@ func runPush(cmd *cobra.Command, args []string) {
 	changes := state.Changed(&oldState, &newState)
 
 	bumped := []common.Package{}
+	bset := make(map[int]bool)
 	outdated := []common.Package{}
 	bad := []common.Package{}
 
@@ -54,6 +60,7 @@ func runPush(cmd *cobra.Command, args []string) {
 		pkg := newState.Packages()[diff.Idx]
 		if diff.IsNewRel() {
 			bumped = append(bumped, pkg)
+			bset[diff.Idx] = true
 		} else if diff.IsSameRel() && !diff.IsSame() {
 			bad = append(bad, pkg)
 		} else if diff.IsDowngrade() {
@@ -84,9 +91,30 @@ func runPush(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	waterlog.Infof("The following packages will be updated:")
+	waterlog.Goodf("The following packages will be updated:")
 	for _, pkg := range bumped {
 		waterlog.Printf(" %s", pkg.Name)
 	}
 	waterlog.Println()
+
+	depGraph := newState.DepGraph()
+	waterlog.Goodln("Successfully generated dependency graph!")
+
+	lifted, err := utils.LiftGraph(depGraph, func(i int) bool { return bset[i] })
+	if err != nil {
+		waterlog.Fatalf("Failed to lift updated packages from dependency graph: %s\n", err)
+	}
+	waterlog.Goodln("Successfully isolated packages to update!")
+
+	order, err := graph.TopologicalSort(lifted)
+	if err != nil {
+		fingDot, _ := os.Create("lifted.gv")
+		_ = draw.DOT(lifted, fingDot)
+		waterlog.Fatalf("Failed to compute build order: %s\n", err)
+	}
+
+	waterlog.Goodln("Here's the build order:")
+	for _, idx := range order {
+		waterlog.Println(newState.Packages()[idx].Name)
+	}
 }

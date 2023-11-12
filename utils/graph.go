@@ -5,6 +5,8 @@
 package utils
 
 import (
+	"errors"
+
 	"github.com/dominikbraun/graph"
 )
 
@@ -29,7 +31,7 @@ func copyVertexProperties(source graph.VertexProperties) func(*graph.VertexPrope
 
 func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph[int, int], err error) {
 	visited := make(map[int]bool)
-	res = graph.New(graph.IntHash, graph.Directed(), graph.PreventCycles())
+	res = graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
 	adjMap, err := (*g).AdjacencyMap()
 
 	if err != nil {
@@ -38,8 +40,8 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 
 	for node := range adjMap {
 		if choose(node) {
-			err = copyVertex(node, g, &res)
-			if err != nil {
+
+			if err = copyVertex(node, g, &res); err != nil {
 				return
 			}
 		}
@@ -47,8 +49,7 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 
 	for node := range adjMap {
 		if choose(node) {
-			err = liftDfs(node, node, choose, g, visited, &res)
-			if err != nil {
+			if err = liftDfs(node, node, choose, adjMap, visited, &res); err != nil {
 				return
 			}
 		}
@@ -57,28 +58,30 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 	return
 }
 
-func liftDfs(node int, parent int, choose func(int) bool, g *graph.Graph[int, int] /* gm *map[int]map[int]graph.Edge[int] */, visited map[int]bool, res *graph.Graph[int, int]) (err error) {
+func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]graph.Edge[int], visited map[int]bool, res *graph.Graph[int, int]) (err error) {
 	if visited[node] {
 		return
 	}
 	visited[node] = true
 
-	adjMap, err := (*g).AdjacencyMap()
-	if err != nil {
-		return err
-	}
-	for adj := range adjMap[node] {
+	for adj := range gm[node] {
+		if adj == parent {
+			continue
+		}
+
 		nextp := parent
+
 		if choose(adj) {
 			nextp = adj
-			err = (*res).AddEdge(parent, adj)
-			if err != nil {
+
+			if err = (*res).AddEdge(parent, adj); err != nil && /* !errors.Is(err, graph.ErrEdgeCreatesCycle) && */ !errors.Is(err, graph.ErrEdgeAlreadyExists) {
 				return
+			} else {
+				err = nil
 			}
 		}
 
-		err = liftDfs(adj, nextp, choose, g, visited, res)
-		if err != nil {
+		if err = liftDfs(adj, nextp, choose, gm, visited, res); err != nil {
 			return
 		}
 	}
