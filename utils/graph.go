@@ -6,6 +6,7 @@ package utils
 
 import (
 	"errors"
+	_ "fmt"
 
 	"github.com/dominikbraun/graph"
 )
@@ -103,4 +104,76 @@ func RemoveVertexWithEdges[K comparable, T any](g *graph.Graph[K, T], node K) er
 	}
 
 	return (*g).RemoveVertex(node)
+}
+
+// I think I accidentally implemented
+// https://github.com/dominikbraun/graph/issues/39. Just need to change some
+// indeg initial values and conditions and I think that's all XD
+//
+// Obviously, this is not used, because I didn't realize I'm working with directed
+// graphs until I finished...
+func SimpleCycles[K comparable, T any](g graph.Graph[K, T]) ([][]K, error) {
+	res := make([][]K, 0)
+
+	gm, err := g.AdjacencyMap()
+	if err != nil {
+		return res, err
+	}
+
+	indeg := make(map[K]int)
+	for _, adjM := range gm {
+		for adj := range adjM {
+			indeg[adj]++
+		}
+	}
+
+	queue := []K{}
+	for node, deg := range indeg {
+		if deg == 0 {
+			queue = append(queue, node)
+		}
+	}
+
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+
+		for adj := range gm[node] {
+			indeg[adj]--
+
+			if indeg[adj] == 0 {
+				queue = append(queue, adj)
+			}
+		}
+	}
+
+	visited := make(map[K]bool)
+	for node, deg := range indeg {
+		if deg == 0 || visited[node] {
+			continue
+		}
+
+		cycle := []K{}
+		queue := []K{node}
+		for len(queue) > 0 {
+			node := queue[0]
+			queue = queue[1:]
+
+			if visited[node] {
+				continue
+			}
+			visited[node] = true
+			cycle = append(cycle, node)
+
+			for adj := range gm[node] {
+				if indeg[adj] != 0 && !visited[adj] {
+					queue = append(queue, adj)
+				}
+			}
+		}
+
+		res = append(res, cycle)
+	}
+
+	return res, err
 }

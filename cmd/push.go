@@ -110,6 +110,24 @@ func runPush(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fingDot, _ := os.Create("lifted.gv")
 		_ = draw.DOT(lifted, fingDot)
+
+		if cycles, err := graph.StronglyConnectedComponents(lifted); err == nil {
+			cycleIdx := 0
+			for _, cycle := range cycles {
+				if len(cycle) <= 1 {
+					continue
+				}
+
+				waterlog.Printf("Cycle %d:", cycleIdx+1)
+				cycleIdx++
+
+				for _, nodeIdx := range cycle {
+					waterlog.Printf(" %s", newState.Packages()[nodeIdx].Name)
+				}
+				waterlog.Println()
+			}
+		}
+
 		waterlog.Fatalf("Failed to compute build order: %s\n", err)
 	}
 
