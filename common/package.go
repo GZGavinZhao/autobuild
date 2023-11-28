@@ -18,6 +18,7 @@ import (
 	"github.com/GZGavinZhao/autobuild/ypkg"
 	"github.com/getsolus/libeopkg/index"
 	"github.com/getsolus/libeopkg/pspec"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -75,6 +76,34 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		Release:   ypkgYml.Release,
 		BuildDeps: ypkgYml.BuildDeps,
 		Synced:    false,
+	}
+
+	// Combine the rundeps of all subpackages into a single list
+	// Note to self: this website can inspect yaml ast nodes:
+	// https://astexplorer.net/, might be useful when debugging
+	rundeps := ypkgYml.RunDeps
+	if rundeps.Kind == yaml.SequenceNode {
+		for _, children := range rundeps.Content {
+			if children.Kind == yaml.ScalarNode {
+				pkg.BuildDeps = append(pkg.BuildDeps, children.Value)
+			} else if children.Kind == yaml.MappingNode {
+				for _, subpkg := range children.Content {
+					for _, rundep := range subpkg.Content {
+						if rundep.Kind != yaml.ScalarNode {
+							continue
+						}
+
+						pkg.BuildDeps = append(pkg.BuildDeps, rundep.Value)
+					}
+				}
+			}
+		}
+	} else {
+		err = errors.New(fmt.Sprintf("%s has unknown \"rundeps\" field kind: %s", dir, rundeps.Value))
+	}
+
+	if ypkgYml.Clang {
+		pkg.BuildDeps = append(pkg.BuildDeps, "llvm-clang-devel")
 	}
 
 	if !utils.PathExists(pspecFile) {
