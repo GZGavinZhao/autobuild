@@ -45,7 +45,7 @@ func LoadBinary(path string) (state *BinaryState, err error) {
 	// Iterate through the eopkg index and check if there are version/release
 	// discrepancies between the source repository and the binary index.
 	for _, ipkg := range eopkgIndex.Packages {
-		if ipkg.Name != ipkg.Source.Name {
+		if _, ok := state.nameToSrcIdx[ipkg.Source.Name]; ok {
 			continue
 		}
 
@@ -54,11 +54,10 @@ func LoadBinary(path string) (state *BinaryState, err error) {
 		if err != nil {
 			return
 		}
-		state.packages = append(state.packages, pkg)
-	}
 
-	for idx, pkg := range state.packages {
-		state.nameToSrcIdx[pkg.Name] = idx
+		// TODO: is this O(N^2)? Check how `len` is calculated.
+		state.nameToSrcIdx[pkg.Name] = len(state.packages)
+		state.packages = append(state.packages, pkg)
 	}
 
 	return

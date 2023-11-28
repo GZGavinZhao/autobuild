@@ -145,7 +145,7 @@ func getPcProvides(pkg *pspec.Package) []string {
 }
 
 func ParseIndexPackage(ipkg index.Package) (pkg Package, err error) {
-	pkg.Name = ipkg.Name
+	pkg.Name = ipkg.Source.Name
 
 	latest := ipkg.History[0]
 	pkg.Release = latest.Release

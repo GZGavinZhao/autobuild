@@ -30,7 +30,6 @@ func init() {
 }
 
 func runPush(cmd *cobra.Command, args []string) {
-
 	oldTPath := args[0]
 	newTPath := args[1]
 
