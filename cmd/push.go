@@ -69,12 +69,16 @@ func runPush(cmd *cobra.Command, args []string) {
 
 	force, _ := cmd.Flags().GetBool("force")
 
-	if len(bad) != 0 && !force {
+	if len(bad) != 0 {
 		waterlog.Warnf("The following packages have the same release number but different version:")
 		for _, pkg := range bad {
 			waterlog.Printf(" %s", pkg.Name)
 		}
-		waterlog.Fatalln()
+		if force {
+			waterlog.Println()
+		} else {
+			waterlog.Fatalln()
+		}
 	}
 
 	if len(outdated) != 0 {
@@ -88,6 +92,25 @@ func runPush(cmd *cobra.Command, args []string) {
 	if len(bumped) == 0 {
 		waterlog.Infoln("No packages to update. Exiting...")
 		return
+	}
+
+	// Check that the dependencies of every package already exist
+	var unresolved []common.Package
+	for _, pkg := range bumped {
+		if !pkg.Resolved {
+			unresolved = append(unresolved, pkg)
+		}
+	}
+	if len(unresolved) != 0 {
+		waterlog.Errorf("The following packages have nonexistent build dependencies:")
+		for _, pkg := range unresolved {
+			waterlog.Printf(" %s", pkg.Name)
+		}
+		if force {
+			waterlog.Println()
+		} else {
+			waterlog.Fatalln()
+		}
 	}
 
 	waterlog.Goodf("The following packages will be updated:")
