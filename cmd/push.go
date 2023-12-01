@@ -9,6 +9,7 @@ import (
 
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/push"
 	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/dominikbraun/graph"
@@ -27,6 +28,7 @@ var (
 
 func init() {
 	cmdPush.Flags().BoolP("force", "f", false, "whether to ignore safety checks")
+	cmdPush.Flags().BoolP("dry-run", "n", true, "don't publish anything")
 }
 
 func runPush(cmd *cobra.Command, args []string) {
@@ -68,16 +70,16 @@ func runPush(cmd *cobra.Command, args []string) {
 	}
 
 	force, _ := cmd.Flags().GetBool("force")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 	if len(bad) != 0 {
 		waterlog.Warnf("The following packages have the same release number but different version:")
 		for _, pkg := range bad {
 			waterlog.Printf(" %s", pkg.Name)
 		}
-		if force {
-			waterlog.Println()
-		} else {
-			waterlog.Fatalln()
+		waterlog.Println()
+		if !force {
+			os.Exit(1)
 		}
 	}
 
@@ -97,19 +99,27 @@ func runPush(cmd *cobra.Command, args []string) {
 	// Check that the dependencies of every package already exist
 	var unresolved []common.Package
 	for _, pkg := range bumped {
-		if !pkg.Resolved {
+		if !pkg.Resolve(newState.NameToSrcIdx()) {
 			unresolved = append(unresolved, pkg)
 		}
 	}
 	if len(unresolved) != 0 {
-		waterlog.Errorf("The following packages have nonexistent build dependencies:")
+		// waterlog.Errorf("The following packages have nonexistent build dependencies:")
+		waterlog.Errorln("The following packages have nonexistent build dependencies:")
 		for _, pkg := range unresolved {
-			waterlog.Printf(" %s", pkg.Name)
-		}
-		if force {
+			// waterlog.Printf(" %s", pkg.Name)
+			waterlog.Errorf("%s:", pkg.Name)
+			for _, dep := range pkg.BuildDeps {
+				if _, ok := newState.NameToSrcIdx()[dep]; !ok {
+					waterlog.Printf(" %s", dep)
+				}
+			}
 			waterlog.Println()
-		} else {
-			waterlog.Fatalln()
+		}
+
+		// waterlog.Println()
+		if !force {
+			os.Exit(1)
 		}
 	}
 
@@ -157,5 +167,19 @@ func runPush(cmd *cobra.Command, args []string) {
 	waterlog.Goodln("Here's the build order:")
 	for _, idx := range order {
 		waterlog.Println(newState.Packages()[idx].Name)
+	}
+
+	if dryRun {
+		return
+	}
+
+	for _, idx := range order {
+		pkg := newState.Packages()[idx]
+		waterlog.Infof("Publishing %s\n", pkg.Name)
+		job, err := push.Publish(pkg)
+		if err != nil {
+			waterlog.Fatalf("Publishing package %s failed: %s\n", pkg.Name, err)
+		}
+		waterlog.Goodf("Published package %s with job ID %d\n", pkg.Name, job.ID)
 	}
 }

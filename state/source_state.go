@@ -105,18 +105,18 @@ func LoadSource(path string) (state *SourceState, err error) {
 	}
 	var mutex sync.Mutex
 
-	err = fastwalk.Walk(&walkConf, path, func(path string, d fs.DirEntry, err error) error {
+	err = fastwalk.Walk(&walkConf, path, func(pkgpath string, d fs.DirEntry, err error) error {
 		// err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			return nil
 		}
 
 		// Some hard-coded problematic packages
-		if slices.Contains(badPackages[:], filepath.Base(path)) {
+		if slices.Contains(badPackages[:], filepath.Base(pkgpath)) {
 			return nil
 		}
 
-		cfgFile := filepath.Join(path, "autobuild.yml")
+		cfgFile := filepath.Join(pkgpath, "autobuild.yml")
 		if utils.PathExists(cfgFile) {
 			abConfig, err := config.Load(cfgFile)
 			if err != nil {
@@ -129,15 +129,16 @@ func LoadSource(path string) (state *SourceState, err error) {
 		}
 
 		// TODO: handle legacy XML packages too
-		pkgFile := filepath.Join(path, "package.yml")
+		pkgFile := filepath.Join(pkgpath, "package.yml")
 		if !utils.PathExists(pkgFile) {
 			return nil
 		}
 
-		pkg, err := common.ParsePackage(path)
+		pkg, err := common.ParsePackage(pkgpath)
 		if err != nil {
 			return err
 		}
+		pkg.Root = path
 
 		mutex.Lock()
 		state.packages = append(state.packages, pkg)

@@ -29,6 +29,7 @@ type Package struct {
 	Path      string
 	Name      string
 	Version   string
+	Root      string
 	Release   int
 	Provides  []string
 	BuildDeps []string
