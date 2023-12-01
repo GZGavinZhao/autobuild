@@ -5,9 +5,14 @@
 package state
 
 import (
+	"encoding/xml"
+	"fmt"
+	"net/http"
+
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/dominikbraun/graph"
 	"github.com/getsolus/libeopkg/index"
+	"github.com/ulikunitz/xz"
 )
 
 type BinaryState struct {
@@ -33,18 +38,12 @@ func (s *BinaryState) BuildGraph() {
 	panic("Not Implmeneted!")
 }
 
-func LoadBinary(path string) (state *BinaryState, err error) {
+func LoadEopkgIndex(i *index.Index) (state *BinaryState, err error) {
 	state = &BinaryState{}
 	state.nameToSrcIdx = make(map[string]int)
-
-	eopkgIndex, err := index.Load(path)
-	if err != nil {
-		return
-	}
-
 	// Iterate through the eopkg index and check if there are version/release
 	// discrepancies between the source repository and the binary index.
-	for _, ipkg := range eopkgIndex.Packages {
+	for _, ipkg := range i.Packages {
 		if _, ok := state.nameToSrcIdx[ipkg.Source.Name]; ok {
 			continue
 		}
@@ -60,5 +59,41 @@ func LoadBinary(path string) (state *BinaryState, err error) {
 		state.packages = append(state.packages, pkg)
 	}
 
+	return
+}
+
+func LoadBinary(path string) (state *BinaryState, err error) {
+	eopkgIndex, err := index.Load(path)
+	if err != nil {
+		return
+	}
+
+	state, err = LoadEopkgIndex(eopkgIndex)
+	return
+}
+
+func LoadRepo(name string) (state *BinaryState, err error) {
+	indexUrl := fmt.Sprintf("https://packages.getsol.us/%s/eopkg-index.xml.xz", name)
+	resp, err := http.Get(indexUrl)
+	if err != nil {
+		err = fmt.Errorf("Failed to fetch binary index from url %s: %w", indexUrl, err)
+		return
+	}
+
+	r, err := xz.NewReader(resp.Body)
+	if err != nil {
+		err = fmt.Errorf("Failed to create XZ reader with binary index from url %s: %w", indexUrl, err)
+		return
+	}
+
+	dec := xml.NewDecoder(r)
+	var i index.Index
+	err = dec.Decode(&i)
+	if err != nil {
+		err = fmt.Errorf("Failed to decode binary index from url %s: %w", indexUrl, err)
+		return
+	}
+
+	state, err = LoadEopkgIndex(&i)
 	return
 }
