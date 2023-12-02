@@ -5,15 +5,19 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/push"
 	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/GZGavinZhao/autobuild/utils"
+	"github.com/briandowns/spinner"
 	"github.com/dominikbraun/graph"
 	"github.com/dominikbraun/graph/draw"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -173,13 +177,61 @@ func runPush(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	red := color.New(color.FgRed).SprintFunc()
+	green := color.New(color.FgGreen).SprintFunc()
 	for _, idx := range order {
+		s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		defer s.Stop()
 		pkg := newState.Packages()[idx]
-		waterlog.Infof("Publishing %s\n", pkg.Name)
+
+		s.Prefix = " "
+		s.Suffix = fmt.Sprintf("  Publishing %s", pkg.Name)
+		s.Color("white")
+		s.Restart()
+
 		job, err := push.Publish(pkg)
+		jobid := job.ID
 		if err != nil {
-			waterlog.Fatalf("Publishing package %s failed: %s\n", pkg.Name, err)
+			s.FinalMSG = fmt.Sprintf("%s failed to publish %s: %s", red("[x]"), pkg.Name, err)
+			s.Stop()
+			os.Exit(1)
 		}
-		waterlog.Goodf("Published package %s with job ID %d\n", pkg.Name, job.ID)
+
+		s.Color("yellow")
+		s.Suffix = fmt.Sprintf("  Package %s (%d) is waiting to be claimed", pkg.Name, jobid)
+		s.Restart()
+		for job.Status == "UNCLAIMED" {
+			job, err = push.Query(jobid)
+			time.Sleep(1 * time.Second)
+		}
+
+		s.Suffix = fmt.Sprintf("  Package %s (%d) is claimed, waiting to be built", pkg.Name, jobid)
+		for job.Status == "CLAIMED" {
+			job, err = push.Query(jobid)
+			time.Sleep(1 * time.Second)
+		}
+
+		if job.Status == "BUILDING" {
+			s.Color("green")
+			s.Suffix = fmt.Sprintf("  Package %s (%d) is building", pkg.Name, jobid) 
+			s.Restart()
+		}
+		for job.Status == "BUILDING" {
+			job, err = push.Query(jobid)
+			time.Sleep(15 * time.Second)
+		}
+
+		if job.Status == "OK" {
+			s.FinalMSG = fmt.Sprintf("%s %s (%d) built successfully!\n", green("[✓]"), pkg.Name, jobid)
+			s.Stop()
+		} else {
+			if job.Status == "FAILED" {
+				s.FinalMSG = fmt.Sprintf("%s %s (%d) failed to build\n", red("[x]"), pkg.Name, jobid)
+			} else {
+				s.FinalMSG = fmt.Sprintf("%s %s (%d) has unknown status %s\n", red("[x]"), pkg.Name, jobid, job.Status)
+			}
+			s.Stop()
+			os.Exit(1)
+		}
 	}
 }
