@@ -19,7 +19,7 @@ import (
 
 var (
 	cmdPush = &cobra.Command{
-		Use:   "push <[src|bin]:path-to-old> <[src|bin]:path-to-new>",
+		Use:   "push <[src|bin|repo]:path-to-old> <[src|bin|repo]:path-to-new>",
 		Short: "Push package changes to the build server",
 		Run:   runPush,
 		Args:  cobra.ExactArgs(2),

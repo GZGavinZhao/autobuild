@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	InvalidTPathError error = errors.New("Invalid tpath! Must be in the form \"[src|bin]:path\"!")
+	InvalidTPathError error = errors.New("Invalid tpath! Must be in the form \"[src|bin|repo]:path\"!")
 )
 
 type State interface {
@@ -30,7 +30,7 @@ func ValidTPath(tpath string) bool {
 		return false
 	}
 
-	return slices.Contains([]string{"src", "bin"}, splitted[0])
+	return slices.Contains([]string{"src", "bin", "repo"}, splitted[0])
 }
 
 func LoadState(tpath string) (state State, err error) {
@@ -42,8 +42,10 @@ func LoadState(tpath string) (state State, err error) {
 	splitted := strings.Split(tpath, ":")
 	if splitted[0] == "src" {
 		state, err = LoadSource(splitted[1])
-	} else {
+	} else if splitted[0] == "bin" {
 		state, err = LoadBinary(splitted[1])
+	} else {
+		state, err = LoadRepo(splitted[1])
 	}
 
 	return

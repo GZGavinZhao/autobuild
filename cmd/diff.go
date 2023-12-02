@@ -12,7 +12,7 @@ import (
 
 var (
 	cmdDiff = &cobra.Command{
-		Use:   "diff <[src|bin]:path-to-old> <[src|bin]:path-to-new>",
+		Use:   "diff <[src|bin|repo]:path-to-old> <[src|bin|repo]:path-to-new>",
 		Short: "Diff the packages between binary indices or sources or a mix of them",
 		Run:   runDiff,
 		Args:  cobra.ExactArgs(2),

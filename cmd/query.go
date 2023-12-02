@@ -20,7 +20,7 @@ import (
 var (
 	dotPath  string
 	cmdQuery = &cobra.Command{
-		Use:   "query [src|bin:path] [packages]",
+		Use:   "query [src|bin|repo:path] [packages]",
 		Short: "Query the build order of the given packages or the currently unsynced packages",
 		Run:   runQuery,
 		Args: func(cmd *cobra.Command, args []string) error {
