@@ -22,7 +22,7 @@ const (
 	host = "build.getsol.us"
 )
 
-func Publish(pkg common.Package) (job Job, err error) {
+func Publish(pkg common.Package, prePush bool) (job Job, err error) {
 	root := pkg.Root
 	relp, err := filepath.Rel(root, pkg.Path)
 	if err != nil {
@@ -89,12 +89,14 @@ func Publish(pkg common.Package) (job Job, err error) {
 	// }
 
 	// go-git cannot pick up the correct user/SSH public key to push! Bruh!
-	pushCmd := exec.Command("git", "push")
-	pushCmd.Dir = pkg.Root
-	output, err := pushCmd.CombinedOutput()
-	if err != nil {
-		err = fmt.Errorf("push.Publish: failed to push to remote: %w, stderr: %s", err, string(output))
-		return
+	var output []byte
+	if prePush {
+		pushCmd := exec.Command("git", "push")
+		pushCmd.Dir = pkg.Root
+		if output, err = pushCmd.CombinedOutput(); err != nil {
+			err = fmt.Errorf("push.Publish: failed to push to remote: %w, stderr: %s", err, string(output))
+			return
+		}
 	}
 
 	args := []string{
@@ -106,14 +108,12 @@ func Publish(pkg common.Package) (job Job, err error) {
 		ref.Hash().String(),
 	}
 	cmd := exec.Command("ssh", args...)
-	output, err = cmd.Output()
-	if err != nil {
+	if output, err = cmd.Output(); err != nil {
 		err = fmt.Errorf("push.Publish: failed to publish package %s using args %q: %w", pkg.Name, args, err)
 		return
 	}
 
-	err = json.Unmarshal(output, &job)
-	if err != nil {
+	if err = json.Unmarshal(output, &job); err != nil {
 		err = fmt.Errorf("push.Publish: failed to unmarshall json output to job: %w", err)
 		return
 	}

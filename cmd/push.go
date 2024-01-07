@@ -33,6 +33,7 @@ var (
 func init() {
 	cmdPush.Flags().BoolP("force", "f", false, "whether to ignore safety checks")
 	cmdPush.Flags().BoolP("dry-run", "n", true, "don't publish anything")
+	cmdPush.Flags().BoolP("push", "p", true, "git push packages before publishing")
 }
 
 func runPush(cmd *cobra.Command, args []string) {
@@ -75,6 +76,7 @@ func runPush(cmd *cobra.Command, args []string) {
 
 	force, _ := cmd.Flags().GetBool("force")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	prePush, _ := cmd.Flags().GetBool("push")
 
 	if len(bad) != 0 {
 		waterlog.Warnf("The following packages have the same release number but different version:")
@@ -189,7 +191,7 @@ func runPush(cmd *cobra.Command, args []string) {
 		s.Color("white")
 		s.Restart()
 
-		job, err := push.Publish(pkg)
+		job, err := push.Publish(pkg, prePush)
 		jobid := job.ID
 		if err != nil {
 			s.FinalMSG = fmt.Sprintf("%s failed to publish %s: %s", red("[x]"), pkg.Name, err)
