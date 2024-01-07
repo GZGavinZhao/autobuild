@@ -60,9 +60,12 @@ autobuild push <old-tpath> <new-tpath>
 May fail or output an incorrect order if the dependency graph between the list 
 of packages given has cycles.
 
-Note: you must already have permissions to push to the build server. It's
-recommended that you run it with the dry-run flag `-n` to inspect the push order
-before proceeding. TODO(GZGavinZhao): add a yes/no dialogue.
+Note: you must already have permissions to push to the build server. By default,
+it does a dry-run and you can inspect whether it will be pushing the packages
+that you want to push. After you think everything looks fine, you can run the
+command with `--dry-run=false` to actually push to the build server.
+
+TODO(GZGavinZhao): add a yes/no dialogue even if `--dry-run=false`.
 
 Example: push my ROCm stack
 ```bash
