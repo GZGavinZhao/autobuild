@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/pkgconfig/[^/]+\.pc`)
+	pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc`)
 )
 
 type Package struct {
