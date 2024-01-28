@@ -14,6 +14,7 @@ import (
 
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/config"
+	"github.com/GZGavinZhao/autobuild/stone"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/charlievieth/fastwalk"
 	"github.com/dominikbraun/graph"
@@ -129,15 +130,25 @@ func LoadSource(path string) (state *SourceState, err error) {
 		}
 
 		// TODO: handle legacy XML packages too
-		pkgFile := filepath.Join(pkgpath, "package.yml")
-		if !utils.PathExists(pkgFile) {
+		var pkg common.Package
+
+		ypkgFile := filepath.Join(pkgpath, "package.yml")
+		stoneFile := filepath.Join(pkgpath, "stone.yml")
+
+		if utils.PathExists(ypkgFile) {
+			pkg, err = common.ParsePackage(pkgpath)
+			if err != nil {
+				return err
+			}
+		} else if utils.PathExists(stoneFile) {
+			pkg, err = stone.ParsePackage(pkgpath)
+			if err != nil {
+				return fmt.Errorf("Failed to parse %s: %w", pkgpath, err)
+			}
+		} else {
 			return nil
 		}
 
-		pkg, err := common.ParsePackage(pkgpath)
-		if err != nil {
-			return err
-		}
 		pkg.Root = path
 
 		mutex.Lock()

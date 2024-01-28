@@ -45,7 +45,7 @@ func LoadState(tpath string) (state State, err error) {
 	} else if splitted[0] == "bin" {
 		state, err = LoadBinary(splitted[1])
 	} else {
-		state, err = LoadRepo(splitted[1])
+		state, err = LoadEopkgRepo(splitted[1])
 	}
 
 	return
