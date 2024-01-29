@@ -72,7 +72,7 @@ func LoadBinary(path string) (state *BinaryState, err error) {
 	return
 }
 
-func LoadRepo(name string) (state *BinaryState, err error) {
+func LoadEopkgRepo(name string) (state *BinaryState, err error) {
 	indexUrl := fmt.Sprintf("https://packages.getsol.us/%s/eopkg-index.xml.xz", name)
 	resp, err := http.Get(indexUrl)
 	if err != nil {
