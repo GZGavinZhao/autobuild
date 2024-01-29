@@ -17,6 +17,8 @@ require (
 )
 
 require (
+	github.com/GZGavinZhao/libstone-go v0.0.0-20240129032428-4a8a7da0580b // indirect
+	github.com/klauspost/compress v1.17.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/term v0.15.0 // indirect

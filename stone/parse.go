@@ -12,6 +12,11 @@ import (
 )
 
 func ParsePackage(path string) (cpkg common.Package, err error) {
+	manifestPath := filepath.Join(path, "manifest.x86_64.bin")
+	if utils.PathExists(manifestPath) {
+		return ParseManifest(manifestPath)
+	}
+
 	stonePath := filepath.Join(path, "stone.yml")
 	if !utils.PathExists(stonePath) {
 		return

@@ -4,6 +4,10 @@ github.com/DataDrake/flair v0.5.1 h1:JHWOoBRiQGWg+k2bV2Mje2YmDtRjhMj51yDxQkzidWI
 github.com/DataDrake/flair v0.5.1/go.mod h1:3KgdmkL8eJDbg/HdMwlHkeYH/mpSy/hsQvxYQFp9A/Y=
 github.com/DataDrake/waterlog v1.2.0 h1:T3Hs0D6YOQfz6GtViw+fYSIGpGimU41FubcxQQzaeHM=
 github.com/DataDrake/waterlog v1.2.0/go.mod h1:xSKEWChL8698jwSJSyjKPIpFpj/K5n+Eif2ztYXDjJI=
+github.com/GZGavinZhao/libstone-go v0.0.0-20240128002427-224a4936d809 h1:ZBnSaLpo5xAOVF9rHC0Mz3V6XTkFV5YWybeg5nxxUE8=
+github.com/GZGavinZhao/libstone-go v0.0.0-20240128002427-224a4936d809/go.mod h1:+VEZL/vMB/sDfwE+VUCiNhBAFxKEVD952+ejgY9D48I=
+github.com/GZGavinZhao/libstone-go v0.0.0-20240129032428-4a8a7da0580b h1:m1W1Q5y0tpU0TNXivDgCw3cn/+bitIE43G/6LBeYojQ=
+github.com/GZGavinZhao/libstone-go v0.0.0-20240129032428-4a8a7da0580b/go.mod h1:+VEZL/vMB/sDfwE+VUCiNhBAFxKEVD952+ejgY9D48I=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
@@ -60,6 +64,8 @@ github.com/karrick/godirwalk v1.17.0 h1:b4kY7nqDdioR/6qnbHQyDvmA17u5G1cZ6J+CZXwS
 github.com/karrick/godirwalk v1.17.0/go.mod h1:j4mkqPuvaLI8mp1DroR3P6ad7cyYd4c1qeJ3RV7ULlk=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
+github.com/klauspost/compress v1.17.5 h1:d4vBd+7CHydUqpFBgUEKkSdtSugf9YFmSkvUYPquI5E=
+github.com/klauspost/compress v1.17.5/go.mod h1:/dCuZOvVtNoHsyb+cuJD3itjs3NbnF6KH9zAO4BDxPM=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
