@@ -32,7 +32,7 @@ func copyVertexProperties(source graph.VertexProperties) func(*graph.VertexPrope
 
 func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph[int, int], err error) {
 	visited := make(map[int]bool)
-	res = graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
+	res = graph.New(graph.IntHash, graph.Directed(), graph.Acyclic(), graph.PreventCycles())
 	adjMap, err := (*g).AdjacencyMap()
 
 	if err != nil {
@@ -75,7 +75,7 @@ func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]gra
 		if choose(adj) {
 			nextp = adj
 
-			if err = (*res).AddEdge(parent, adj); err != nil && /* !errors.Is(err, graph.ErrEdgeCreatesCycle) && */ !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+			if err = (*res).AddEdge(parent, adj); err != nil && !errors.Is(err, graph.ErrEdgeCreatesCycle) && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
 				return
 			} else {
 				err = nil
