@@ -41,7 +41,6 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 
 	for node := range adjMap {
 		if choose(node) {
-
 			if err = copyVertex(node, g, &res); err != nil {
 				return
 			}
@@ -66,9 +65,9 @@ func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]gra
 	visited[node] = true
 
 	for adj := range gm[node] {
-		if adj == parent {
-			continue
-		}
+		// if adj == parent {
+		// 	continue
+		// }
 
 		nextp := parent
 

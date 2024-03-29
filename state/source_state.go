@@ -5,6 +5,7 @@
 package state
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -161,6 +162,10 @@ func LoadSource(path string) (state *SourceState, err error) {
 	if err != nil {
 		return
 	}
+
+	slices.SortFunc(state.packages, func(a, b common.Package) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 
 	for idx, pkg := range state.packages {
 		state.nameToSrcIdx[pkg.Name] = idx
