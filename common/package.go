@@ -146,6 +146,7 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		}
 		return true
 	})
+	slices.Sort(pkg.BuildDeps)
 
 	return
 }
