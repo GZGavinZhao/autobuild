@@ -92,6 +92,20 @@ func runQuery(cmd *cobra.Command, args []string) {
 					waterlog.Printf(" %s", state.Packages()[nodeIdx].Name)
 				}
 				waterlog.Println()
+
+				path, err := graph.ShortestPath(*depGraph, cycle[0], cycle[1])
+				if err == nil && len(path) == 2 {
+					path, err = graph.ShortestPath(*depGraph, cycle[1], cycle[0])
+				}
+				if err == nil {
+					waterlog.Warnln("Dependency chain that led to this cycle:")
+					for _, pidx := range path {
+						waterlog.Printf("%s -> ", state.Packages()[pidx].Name)
+					}
+					waterlog.Println(state.Packages()[path[0]].Name)
+				} else {
+					waterlog.Warnln("Failed to calculate dependency chain that formed this cycle!")
+				}
 			}
 		}
 
