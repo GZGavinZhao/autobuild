@@ -106,6 +106,7 @@ func Publish(pkg common.Package, prePush bool) (job Job, err error) {
 		fmt.Sprintf("%s-%s-%d", pkg.Name, pkg.Version, pkg.Release),
 		relp,
 		ref.Hash().String(),
+		"by autobuild",
 	}
 	cmd := exec.Command("ssh", args...)
 	if output, err = cmd.Output(); err != nil {
