@@ -47,11 +47,26 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 		}
 	}
 
-	for node := 0; node < len(adjMap); node++ {
-		if choose(node) {
-			for adj := range adjMap[node] {
-				// println("Starting with", node, "going to", adj)
-				if err = liftDfs(adj, node, choose, adjMap, visited, &res); err != nil {
+	// Note: if you find that the output of autobuild query is not
+	// deterministic, comment out the below and comment the for loop after this
+	// block to test.
+	// for node := 0; node < len(adjMap); node++ {
+	// 	actualNode := (node + 4000) % len(adjMap)
+	// 	if choose(actualNode) {
+	// 		for adj := range adjMap[actualNode] {
+	// 			// println("Starting with", actualNode, "going to", adj)
+	// 			if err = liftDfs(adj, actualNode, choose, adjMap, visited, &res); err != nil {
+	// 				return
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	for actualNode := range adjMap {
+		if choose(actualNode) {
+			for adj := range adjMap[actualNode] {
+				// println("Starting with", actualNode, "going to", adj)
+				if err = liftDfs(adj, actualNode, choose, adjMap, visited, &res); err != nil {
 					return
 				}
 			}
