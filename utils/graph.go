@@ -47,10 +47,13 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 		}
 	}
 
-	for node := range adjMap {
+	for node := 0; node < len(adjMap); node++ {
 		if choose(node) {
-			if err = liftDfs(node, node, choose, adjMap, visited, &res); err != nil {
-				return
+			for adj := range adjMap[node] {
+				// println("Starting with", node, "going to", adj)
+				if err = liftDfs(adj, node, choose, adjMap, visited, &res); err != nil {
+					return
+				}
 			}
 		}
 	}
@@ -64,23 +67,44 @@ func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]gra
 	}
 	visited[node] = true
 
-	for adj := range gm[node] {
-		// if adj == parent {
-		// 	continue
-		// }
+	if node == parent {
+		// err = errors.New("wtf node is parent???")
+		return
+	}
 
-		nextp := parent
+	// for adj := range gm[node] {
+	// 	// if adj == parent {
+	// 	// 	continue
+	// 	// }
 
-		if choose(adj) {
-			nextp = adj
+	// 	nextp := parent
 
-			if err = (*res).AddEdge(parent, adj); err != nil && /* !errors.Is(err, graph.ErrEdgeCreatesCycle) && */ !errors.Is(err, graph.ErrEdgeAlreadyExists) {
-				return
-			} else {
-				err = nil
-			}
+	// 	if choose(adj) {
+	// 		nextp = adj
+
+	// 		if err = (*res).AddEdge(parent, adj, graph.EdgeWeight(1)); err != nil && /* !errors.Is(err, graph.ErrEdgeCreatesCycle) && */ !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+	// 			return
+	// 		} else {
+	// 			err = nil
+	// 		}
+	// 	}
+
+	// 	if err = liftDfs(adj, nextp, choose, gm, visited, res); err != nil {
+	// 		return
+	// 	}
+	// }
+
+	nextp := parent
+	if choose(node) {
+		// println(parent, "->", node)
+		if err = (*res).AddEdge(parent, node, graph.EdgeWeight(1)); err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+			return
 		}
 
+		nextp = node
+	}
+
+	for adj := range gm[node] {
 		if err = liftDfs(adj, nextp, choose, gm, visited, res); err != nil {
 			return
 		}

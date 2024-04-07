@@ -86,7 +86,7 @@ func BuildDepGraph(srcPkgs []Package, nameToSrcIdx map[string]int) (depGraph gra
 			if !depFound {
 				// waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Name)
 			} else if pkgIdx != depIdx {
-				err = depGraph.AddEdge(depIdx, pkgIdx)
+				err = depGraph.AddEdge(depIdx, pkgIdx, graph.EdgeWeight(1))
 				if err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
 					err = errors.New(fmt.Sprintf("Failed to create edge from %s to %s: %s\n", dep, pkg.Name, err))
 					return

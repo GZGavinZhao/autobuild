@@ -22,7 +22,9 @@ import (
 )
 
 var (
-	pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc`)
+	// pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/[^/]+\.pc`)
+	pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc$`)
+	oldpcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc`)
 )
 
 type Package struct {
@@ -147,6 +149,7 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		return true
 	})
 	slices.Sort(pkg.BuildDeps)
+	slices.Sort(pkg.Provides)
 
 	return
 }
@@ -157,11 +160,15 @@ func getPcProvides(pkg *pspec.Package) []string {
 	for _, file := range pkg.Files {
 		match := pcre.FindString(file.Value)
 		pcFile := filepath.Base(match)
-		if pcFile == "." {
+		if pcFile == "." || pcFile == "*.pc" {
 			continue
 		}
 
 		splitted := strings.Split(match, "/")
+		if len(splitted) > 5 {
+			continue
+		}
+
 		if slices.Contains(splitted, "lib32") {
 			provides = append(provides, fmt.Sprintf("pkgconfig32(%s)", pcFile[:len(pcFile)-3]))
 		} else if slices.Contains(splitted, "share") {

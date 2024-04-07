@@ -13,6 +13,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/config"
 	"github.com/GZGavinZhao/autobuild/stone"
@@ -83,7 +84,7 @@ func (s *SourceState) buildGraph() {
 			if !depFound {
 				// waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Name)
 			} else if pkgIdx != depIdx {
-				err := g.AddEdge(depIdx, pkgIdx)
+				err := g.AddEdge(depIdx, pkgIdx, graph.EdgeWeight(1))
 				if err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
 					panic(errors.New(fmt.Sprintf("Failed to create edge from %s to %s: %s\n", dep, pkg.Name, err)))
 				}
@@ -105,10 +106,11 @@ func LoadSource(path string) (state *SourceState, err error) {
 	walkConf := fastwalk.Config{
 		Follow: false,
 	}
+	_ = walkConf
 	var mutex sync.Mutex
 
+	// err = filepath.WalkDir(path, func(pkgpath string, d fs.DirEntry, err error) error {
 	err = fastwalk.Walk(&walkConf, path, func(pkgpath string, d fs.DirEntry, err error) error {
-		// err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			return nil
 		}
@@ -168,8 +170,14 @@ func LoadSource(path string) (state *SourceState, err error) {
 	})
 
 	for idx, pkg := range state.packages {
+		if nidx, ok := state.nameToSrcIdx[pkg.Name]; ok && nidx != idx {
+			waterlog.Errorf("Duplicate provider for %s from %s, currently %s\n", pkg.Name, pkg.Name, state.packages[nidx].Name)
+		}
 		state.nameToSrcIdx[pkg.Name] = idx
 		for _, name := range pkg.Provides {
+			if nidx, ok := state.nameToSrcIdx[name]; ok && nidx != idx {
+				waterlog.Errorf("Duplicate provider for %s from %s, currently %s\n", name, pkg.Name, state.packages[nidx].Name)
+			}
 			state.nameToSrcIdx[name] = idx
 		}
 	}
