@@ -47,20 +47,9 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 		}
 	}
 
-	for node := 0; node < len(adjMap); node++ {
-		actualNode := node
-		if choose(actualNode) {
-			for adj := range adjMap[actualNode] {
-				// println("Starting with", actualNode, "going to", adj)
-				if err = liftDfs(adj, actualNode, choose, adjMap, visited, &res); err != nil {
-					return
-				}
-			}
-		}
-	}
-
-	// The non-deterministic code
-	// for actualNode := range adjMap {
+	// The deterministic node traversal
+	// for node := 0; node < len(adjMap); node++ {
+	// 	actualNode := node
 	// 	if choose(actualNode) {
 	// 		for adj := range adjMap[actualNode] {
 	// 			// println("Starting with", actualNode, "going to", adj)
@@ -70,6 +59,18 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 	// 		}
 	// 	}
 	// }
+
+	// The non-deterministic node traversal
+	for actualNode := range adjMap {
+		if choose(actualNode) {
+			for adj := range adjMap[actualNode] {
+				// println("Starting with", actualNode, "going to", adj)
+				if err = liftDfs(adj, actualNode, choose, adjMap, visited, &res); err != nil {
+					return
+				}
+			}
+		}
+	}
 
 	return
 }
