@@ -74,15 +74,10 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 	return
 }
 
-func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]graph.Edge[int], visited map[int]bool, res *graph.Graph[int, int]) (err error) {
-	if visited[node] {
-		return
-	}
-	visited[node] = true
-
+func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]graph.Edge[int], visited map[int]bool, res *graph.Graph[int, int]) (error) {
 	if node == parent {
 		// err = errors.New("wtf node is parent???")
-		return
+		return nil
 	}
 
 	// for adj := range gm[node] {
@@ -110,20 +105,24 @@ func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]gra
 	nextp := parent
 	if choose(node) {
 		// println(parent, "->", node)
-		if err = (*res).AddEdge(parent, node, graph.EdgeWeight(1)); err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
-			return
-		}
-
+		if err := (*res).AddEdge(parent, node, graph.EdgeWeight(1)); err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+			return err
+		} 
 		nextp = node
 	}
 
+	if visited[node] {
+		return nil
+	}
+	visited[node] = true
+
 	for adj := range gm[node] {
-		if err = liftDfs(adj, nextp, choose, gm, visited, res); err != nil {
-			return
+		if err := liftDfs(adj, nextp, choose, gm, visited, res); err != nil {
+			return err
 		}
 	}
 
-	return
+	return nil
 }
 
 func RemoveVertexWithEdges[K comparable, T any](g *graph.Graph[K, T], node K) error {
