@@ -11,3 +11,15 @@ func Filter[T any](a []T, test func(T) bool) []T {
 
 	return b
 }
+
+func Flatten[T any](a [][]T) []T {
+	res := []T{}
+
+	for _, sl := range a {
+		for _, el := range sl {
+			res = append(res, el)
+		}
+	}
+
+	return res
+}

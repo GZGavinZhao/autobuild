@@ -5,8 +5,10 @@
 package utils
 
 import (
+	"cmp"
 	"errors"
 	_ "fmt"
+	"slices"
 
 	"github.com/dominikbraun/graph"
 )
@@ -28,6 +30,60 @@ func copyVertexProperties(source graph.VertexProperties) func(*graph.VertexPrope
 		}
 		p.Weight = source.Weight
 	}
+}
+
+func TopologicalSort[K cmp.Ordered, T any](g graph.Graph[K, T]) ([][]K, error) {
+	res := [][]K{}
+
+	adjMap, err := g.AdjacencyMap()
+	if err != nil {
+		return res, err
+	}
+
+	indeg := make(map[K]int)
+	occupied := make(map[K]bool)
+	for node, edges := range adjMap {
+		if _, ok := indeg[node]; !ok {
+			indeg[node] = 0
+		}
+		for adj := range edges {
+			indeg[adj]++
+		}
+	}
+
+	queue := []K{}
+	for node, deg := range indeg {
+		if deg == 0 {
+			queue = append(queue, node)
+		}
+	}
+
+	for len(queue) > 0 {
+		slices.Sort(queue)
+		res = append(res, queue)
+
+		l := len(queue)
+		for i := 0; i < l; i++ {
+			node := queue[0]
+			for adj := range adjMap[node] {
+				indeg[adj]--
+				if indeg[adj] == 0 && !occupied[adj] {
+					occupied[adj] = true
+					queue = append(queue, adj)
+				}
+			}
+
+			queue = queue[1:]
+		}
+	}
+
+	for _, deg := range indeg {
+		if deg > 0 {
+			return res, errors.New("topological sort cannot be computed on graph with cycles")
+		}
+	}
+
+	return res, nil
 }
 
 func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph[int, int], err error) {
@@ -75,7 +131,7 @@ func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph
 	return
 }
 
-func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]graph.Edge[int], visited map[int]bool, res *graph.Graph[int, int]) (error) {
+func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]graph.Edge[int], visited map[int]bool, res *graph.Graph[int, int]) error {
 	if node == parent {
 		// err = errors.New("wtf node is parent???")
 		return nil
@@ -108,7 +164,7 @@ func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]gra
 		// println(parent, "->", node)
 		if err := (*res).AddEdge(parent, node, graph.EdgeWeight(1)); err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
 			return err
-		} 
+		}
 		nextp = node
 	}
 
