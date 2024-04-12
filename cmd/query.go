@@ -19,6 +19,7 @@ import (
 
 var (
 	dotPath  string
+	tiers    bool
 	cmdQuery = &cobra.Command{
 		Use:   "query [src|bin|repo:path] [packages]",
 		Short: "Query the build order of the given packages or the currently unsynced packages",
@@ -34,6 +35,7 @@ var (
 
 func init() {
 	cmdQuery.Flags().StringVar(&dotPath, "dot", "", "stores the final build graph at the specified location in the DOT format")
+	cmdQuery.Flags().BoolVarP(&tiers, "tiers", "t", false, "output tier-ed build order")
 }
 
 func runQuery(cmd *cobra.Command, args []string) {
@@ -74,10 +76,14 @@ func runQuery(cmd *cobra.Command, args []string) {
 		_ = draw.DOT(lifted, liftedDot)
 	}
 
-	order, err := graph.TopologicalSort(lifted)
+	order, err := utils.TopologicalSort(lifted)
 	if err != nil {
 		// Try to dump cycles if topological sort failed.
 		if cycles, err := graph.StronglyConnectedComponents(lifted); err == nil {
+			if len(cycles) == 0 {
+				waterlog.Fatalln("No cycles detected ?!?")
+			}
+
 			for cycleIdx, cycle := range cycles {
 				if len(cycle) <= 1 {
 					continue
@@ -128,9 +134,20 @@ func runQuery(cmd *cobra.Command, args []string) {
 		waterlog.Fatalf("Failed to get topological sort order: %s\n", err)
 	}
 
-	waterlog.Good("Build order: ")
-	for _, orderIdx := range order {
-		fmt.Printf("%s ", state.Packages()[orderIdx].Name)
+	if tiers {
+		waterlog.Goodln("Build order:")
+		for tIdx, tier := range order {
+			waterlog.Goodf("Tier %d: ", tIdx+1)
+			for _, pkgIdx := range tier {
+				fmt.Printf("%s ", state.Packages()[pkgIdx].Name)
+			}
+			fmt.Println()
+		}
+	} else {
+		waterlog.Good("Build order: ")
+		for _, orderIdx := range utils.Flatten(order) {
+			fmt.Printf("%s ", state.Packages()[orderIdx].Name)
+		}
+		fmt.Println()
 	}
-	fmt.Println()
 }
