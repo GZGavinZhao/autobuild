@@ -23,7 +23,7 @@ import (
 
 var (
 	// pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/[^/]+\.pc`)
-	pcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc$`)
+	pcre    = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc$`)
 	oldpcre = regexp.MustCompile(`/usr/(lib|lib64|lib32|share)/.+\.pc`)
 )
 
@@ -141,7 +141,7 @@ func ParsePackage(dir string) (pkg Package, err error) {
 	}
 	pkg.BuildDeps = utils.Filter(pkg.BuildDeps, func(dep string) bool {
 		for _, regex := range ignoreRegexes {
-			if regex.FindString(dep) != "" {
+			if regex.FindString(dep) == dep {
 				waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, pkg.Name, regex.String())
 				return false
 			}
