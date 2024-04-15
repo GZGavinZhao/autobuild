@@ -1,5 +1,34 @@
 ## Usage
 
+### Configuration file
+
+The configuration file is named `autobuild.yml`. It should be place on the same
+level as the package recipe file (e.g. `package.yml` or `stone.yml`).
+
+Currently it's still very simple, with the specification as follows:
+```yml
+# `true` means skip any package in the current directory and any subdirectories
+ignore: false
+
+solver:
+  ignore:
+    - <regex-of-dependencies-to-ignore>
+```
+
+Note that _currently_,
+the regex in `ignore` has to match the entire package name.
+For example, the following config file
+
+```yml
+solver:
+  ignore:
+    - haskell
+```
+
+would not ignore dependencies such as `haskell-cabal-install` and 
+`haskell-hashable`, but if it's `haskell.*`, then every package that starts with
+`haskell` would be ignored.
+
 ### TPath
 
 TPath (typed path) is a way to specify different kinds of files that provide
