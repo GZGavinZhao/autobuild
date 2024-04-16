@@ -7,7 +7,7 @@ package utils
 import (
 	"cmp"
 	"errors"
-	_ "fmt"
+	"fmt"
 	"slices"
 
 	"github.com/dominikbraun/graph"
@@ -268,4 +268,82 @@ func SimpleCycles[K comparable, T any](g graph.Graph[K, T]) ([][]K, error) {
 	}
 
 	return res, err
+}
+
+// Warning: this doesn't preserve any extra information on the edges/nodes!
+func ReverseGraph(g *graph.Graph[int, int]) (*graph.Graph[int, int], error) {
+	res := graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
+	adjMap, err := (*g).AdjacencyMap()
+	if err != nil {
+		return nil, err
+	}
+
+	for node := range adjMap {
+		if err := copyVertex(node, g, &res); err != nil {
+			return nil, err
+		}
+	}
+
+	for node, edges := range adjMap {
+		for adj := range edges {
+			if err := res.AddEdge(adj, node); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &res, nil
+}
+
+// BFSWithDepth works just as BFS and performs a breadth-first search on the graph, but its
+// visit function is passed the current depth level as a second argument. Consequently, the
+// current depth can be used for deciding whether or not to proceed past a certain depth.
+//
+//	_ = utils.BFSWithDepth(g, 1, func(value int, depth int) bool {
+//		fmt.Println(value)
+//		return depth > 3
+//	})
+//
+// With the visit function from the example, the BFS traversal will stop once a depth greater
+// than 3 is reached. Note that depth is calculated by treating the start node
+// as having depth 0.
+func BFSWithDepth[K comparable, T any](g graph.Graph[K, T], start K, visit func(K, int) bool) error {
+	adjacencyMap, err := g.AdjacencyMap()
+	if err != nil {
+		return fmt.Errorf("could not get adjacency map: %w", err)
+	}
+
+	if _, ok := adjacencyMap[start]; !ok {
+		return fmt.Errorf("could not find start vertex with hash %v", start)
+	}
+
+	queue := make([]K, 0)
+	visited := make(map[K]bool)
+	depths := make(map[K]int)
+
+	visited[start] = true
+	queue = append(queue, start)
+	depths[start] = 0
+
+	for len(queue) > 0 {
+		currentHash := queue[0]
+
+		queue = queue[1:]
+
+		// Stop traversing the graph if the visit function returns true.
+		if stop := visit(currentHash, depths[currentHash]); stop {
+			break
+		}
+
+		for adjacency := range adjacencyMap[currentHash] {
+			if _, ok := visited[adjacency]; !ok {
+				visited[adjacency] = true
+				depths[adjacency] = depths[currentHash] + 1
+				queue = append(queue, adjacency)
+			}
+		}
+
+	}
+
+	return nil
 }

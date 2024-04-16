@@ -20,6 +20,8 @@ import (
 var (
 	dotPath  string
 	tiers    bool
+	forward  int
+	reverse  int
 	cmdQuery = &cobra.Command{
 		Use:   "query [src|bin|repo:path] [packages]",
 		Short: "Query the build order of the given packages or the currently unsynced packages",
@@ -36,6 +38,8 @@ var (
 func init() {
 	cmdQuery.Flags().StringVar(&dotPath, "dot", "", "stores the final build graph at the specified location in the DOT format")
 	cmdQuery.Flags().BoolVarP(&tiers, "tiers", "t", false, "output tier-ed build order")
+	cmdQuery.Flags().IntVarP(&forward, "forward", "F", 0, "extra level(s) of packages that depends on the list provided")
+	cmdQuery.Flags().IntVarP(&reverse, "reverse", "R", 0, "extra level(s) of packages that the list provided depends on")
 }
 
 func runQuery(cmd *cobra.Command, args []string) {
@@ -48,7 +52,19 @@ func runQuery(cmd *cobra.Command, args []string) {
 	}
 	waterlog.Goodln("Successfully parsed state!")
 
+	depGraph := state.DepGraph()
+	if depGraph == nil {
+		waterlog.Fatalf("Failed to obtain adjacency map for dependency graph: %s\n", err)
+	}
 	qset := map[int]bool{}
+
+	var revGraph *graph.Graph[int, int]
+	if reverse > 0 {
+		if revGraph, err = utils.ReverseGraph(depGraph); err != nil {
+			waterlog.Fatalf("Failed to reverse dependency graph: %s\n", err)
+		}
+	}
+
 	for _, query := range queries {
 		idx, ok := state.NameToSrcIdx()[query]
 		if !ok {
@@ -61,10 +77,25 @@ func runQuery(cmd *cobra.Command, args []string) {
 		}
 
 		qset[idx] = true
+		utils.BFSWithDepth(*depGraph, idx, func(node int, depth int) bool {
+			if depth > forward+1 {
+				return true
+			}
+			qset[node] = true
+			return false
+		})
+		if reverse > 0 {
+			utils.BFSWithDepth(*revGraph, idx, func(node int, depth int) bool {
+				if depth > reverse+1 {
+					return true
+				}
+				qset[node] = true
+				return false
+			})
+		}
 	}
 	waterlog.Goodln("Found all requested packages in state!")
 
-	depGraph := state.DepGraph()
 	lifted, err := utils.LiftGraph(depGraph, func(i int) bool { return qset[i] })
 	if err != nil {
 		waterlog.Fatalf("Failed to lift final graph from requested nodes: %s\n", err)
