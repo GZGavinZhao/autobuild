@@ -78,7 +78,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 
 		qset[idx] = true
 		utils.BFSWithDepth(*depGraph, idx, func(node int, depth int) bool {
-			if depth > forward+1 {
+			if depth > forward {
 				return true
 			}
 			qset[node] = true
@@ -86,7 +86,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 		})
 		if reverse > 0 {
 			utils.BFSWithDepth(*revGraph, idx, func(node int, depth int) bool {
-				if depth > reverse+1 {
+				if depth > reverse {
 					return true
 				}
 				qset[node] = true
