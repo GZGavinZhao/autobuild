@@ -136,7 +136,7 @@ func LoadSource(path string) (state *SourceState, err error) {
 		var pkg common.Package
 
 		ypkgFile := filepath.Join(pkgpath, "package.yml")
-		stoneFile := filepath.Join(pkgpath, "stone.yml")
+		stoneFile := filepath.Join(pkgpath, "stone.yaml")
 
 		if utils.PathExists(ypkgFile) {
 			pkg, err = common.ParsePackage(pkgpath)
