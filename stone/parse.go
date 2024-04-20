@@ -17,7 +17,7 @@ func ParsePackage(path string) (cpkg common.Package, err error) {
 		return ParseManifest(manifestPath)
 	}
 
-	stonePath := filepath.Join(path, "stone.yml")
+	stonePath := filepath.Join(path, "stone.yaml")
 	if !utils.PathExists(stonePath) {
 		return
 	}
