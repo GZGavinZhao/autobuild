@@ -105,7 +105,8 @@ func runPush(cmd *cobra.Command, args []string) {
 	// Check that the dependencies of every package already exist
 	var unresolved []common.Package
 	for _, pkg := range bumped {
-		if !pkg.Resolve(newState.NameToSrcIdx()) {
+		// TODO: we should probably just be able to call pkg.Resolved?
+		if len(pkg.Resolve(newState.NameToSrcIdx())) > 0 {
 			unresolved = append(unresolved, pkg)
 		}
 	}
@@ -215,7 +216,7 @@ func runPush(cmd *cobra.Command, args []string) {
 
 		if job.Status == "BUILDING" {
 			s.Color("green")
-			s.Suffix = fmt.Sprintf("  Package %s (%d) is building", pkg.Name, jobid) 
+			s.Suffix = fmt.Sprintf("  Package %s (%d) is building", pkg.Name, jobid)
 			s.Restart()
 		}
 		for job.Status == "BUILDING" {

@@ -72,8 +72,12 @@ func runQuery(cmd *cobra.Command, args []string) {
 		}
 
 		pkg := state.Packages()[idx]
-		if !pkg.Resolved {
-			waterlog.Warnf("Package %s has unresolved build dependencies, build graph may be incomplete!\n", pkg.Name)
+		if unresolved := pkg.Resolve(state.NameToSrcIdx()); len(unresolved) > 0 {
+			waterlog.Warnf("Package %s has unresolved build dependencies, build graph may be incomplete:", pkg.Name)
+			for _, pkg := range unresolved {
+				waterlog.Printf(" %s", pkg)
+			}
+			waterlog.Println()
 		}
 
 		qset[idx] = true

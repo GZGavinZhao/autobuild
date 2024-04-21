@@ -40,7 +40,7 @@ type Package struct {
 	Synced    bool
 }
 
-func (p *Package) Resolve(nameToSrcIdx map[string]int) bool {
+func (p *Package) Resolve(nameToSrcIdx map[string]int) (res []string) {
 	if !p.Resolved {
 		p.Resolved = true
 
@@ -49,12 +49,12 @@ func (p *Package) Resolve(nameToSrcIdx map[string]int) bool {
 
 			if !ok {
 				p.Resolved = false
-				break
+				res = append(res, dep)
 			}
 		}
 	}
 
-	return p.Resolved
+	return
 }
 
 // ParsePackage parses a source package that is within the given `dir`
