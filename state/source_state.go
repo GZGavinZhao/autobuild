@@ -124,7 +124,7 @@ func LoadSource(path string) (state *SourceState, err error) {
 		if utils.PathExists(cfgFile) {
 			abConfig, err := config.Load(cfgFile)
 			if err != nil {
-				return errors.New(fmt.Sprintf("LoadSource: failed to load autobuild config file: %s", err))
+				return fmt.Errorf("LoadSource: failed to load autobuild config file at %s: %w", cfgFile, err)
 			}
 
 			if abConfig.Ignore {
@@ -139,13 +139,11 @@ func LoadSource(path string) (state *SourceState, err error) {
 		stoneFile := filepath.Join(pkgpath, "stone.yaml")
 
 		if utils.PathExists(ypkgFile) {
-			pkg, err = common.ParsePackage(pkgpath)
-			if err != nil {
-				return err
+			if pkg, err = common.ParsePackage(pkgpath); err != nil {
+				return fmt.Errorf("Failed to parse %s: %w", pkgpath, err)
 			}
 		} else if utils.PathExists(stoneFile) {
-			pkg, err = stone.ParsePackage(pkgpath)
-			if err != nil {
+			if pkg, err = stone.ParsePackage(pkgpath); err != nil {
 				return fmt.Errorf("Failed to parse %s: %w", pkgpath, err)
 			}
 		} else {
