@@ -140,11 +140,11 @@ func LoadSource(path string) (state *SourceState, err error) {
 
 		if utils.PathExists(ypkgFile) {
 			if pkg, err = common.ParsePackage(pkgpath); err != nil {
-				return fmt.Errorf("Failed to parse %s: %w", pkgpath, err)
+				return fmt.Errorf("Failed to parse %s: %w", ypkgFile, err)
 			}
 		} else if utils.PathExists(stoneFile) {
 			if pkg, err = stone.ParsePackage(pkgpath); err != nil {
-				return fmt.Errorf("Failed to parse %s: %w", pkgpath, err)
+				return fmt.Errorf("Failed to parse %s: %w", stoneFile, err)
 			}
 		} else {
 			return nil
