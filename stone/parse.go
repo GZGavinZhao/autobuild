@@ -17,6 +17,9 @@ func ParsePackage(path string) (cpkg common.Package, err error) {
 		return ParseManifest(manifestPath)
 	}
 
+	// TODO: the below is much more incomplete than the .bin parsing.
+	// We may need to fallback to `.yml` parsing in the case of inspecting
+	// build order before a package is build.
 	stonePath := filepath.Join(path, "stone.yaml")
 	if !utils.PathExists(stonePath) {
 		return

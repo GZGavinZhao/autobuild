@@ -87,7 +87,13 @@ func ParseManifest(path string) (cpkg common.Package, err error) {
 				case payload.RecordTagProvides:
 					cpkg.Provides = append(cpkg.Provides, data.(string))
 				case payload.RecordTagName:
-					cpkg.Provides = append(cpkg.Provides, data.(string))
+					pkgName := data.(string)
+					cpkg.Provides = append(cpkg.Provides, pkgName)
+					// Implcitily assume that `X-dbginfo` is provieded by
+					// package `X`.
+					if !strings.HasPrefix(pkgName, "-dbginfo") {
+						cpkg.Provides = append(cpkg.Provides, pkgName+"-dbginfo")
+					}
 				}
 			}
 		} else {
