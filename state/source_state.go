@@ -120,15 +120,20 @@ func LoadSource(path string) (state *SourceState, err error) {
 			return nil
 		}
 
-		cfgFile := filepath.Join(pkgpath, "autobuild.yml")
-		if utils.PathExists(cfgFile) {
-			abConfig, err := config.Load(cfgFile)
-			if err != nil {
-				return fmt.Errorf("LoadSource: failed to load autobuild config file at %s: %w", cfgFile, err)
-			}
+		for _, cfgFile := range []string{"autobuild.yaml", "autobuild.yml"} {
+			cfgFile = filepath.Join(pkgpath, cfgFile)
+			if utils.PathExists(cfgFile) {
+				waterlog.Debugf("LoadSource: loading config file for %s at %s\n", filepath.Base(pkgpath), cfgFile)
+				abConfig, err := config.Load(cfgFile)
+				if err != nil {
+					return fmt.Errorf("LoadSource: failed to load autobuild config file at %s: %w", cfgFile, err)
+				}
 
-			if abConfig.Ignore {
-				return filepath.SkipDir
+				if abConfig.Ignore {
+					return filepath.SkipDir
+				}
+
+				break
 			}
 		}
 
