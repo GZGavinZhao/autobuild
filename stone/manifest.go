@@ -86,6 +86,8 @@ func ParseManifest(path string) (cpkg common.Package, err error) {
 					cpkg.BuildDeps = append(cpkg.BuildDeps, data.(string))
 				case payload.RecordTagProvides:
 					cpkg.Provides = append(cpkg.Provides, data.(string))
+				case payload.RecordTagName:
+					cpkg.Provides = append(cpkg.Provides, data.(string))
 				}
 			}
 		} else {
