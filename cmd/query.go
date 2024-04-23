@@ -24,8 +24,11 @@ var (
 	reverse  int
 	cmdQuery = &cobra.Command{
 		Use:   "query [src|bin|repo:path] [packages]",
-		Short: "Query the build order of the given packages or the currently unsynced packages",
-		Run:   runQuery,
+		Short: "Query the build order of the given packages",
+		Long: `Query the build order of the given packages. For example: autobuild query src:../packages rocm-clr pytorch
+
+When no arguments are passed, it tries to compute a build order of all the packages it can find.`,
+		Run: runQuery,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("expects one arg for path to binary index or source repo")
@@ -44,7 +47,6 @@ func init() {
 
 func runQuery(cmd *cobra.Command, args []string) {
 	tpath := args[0]
-	queries := args[1:]
 
 	state, err := state.LoadState(tpath)
 	if err != nil {
@@ -63,6 +65,19 @@ func runQuery(cmd *cobra.Command, args []string) {
 		if revGraph, err = utils.ReverseGraph(depGraph); err != nil {
 			waterlog.Fatalf("Failed to reverse dependency graph: %s\n", err)
 		}
+	}
+
+	var queries []string
+	if len(args) < 2 {
+		waterlog.Infoln("No packages are provided, will try to query all packages")
+		queries = make([]string, len(state.Packages()))
+		i := 0
+		for _, pkg := range state.Packages() {
+			queries[i] = pkg.Name
+			i++
+		}
+	} else {
+		queries = args[1:]
 	}
 
 	for _, query := range queries {
