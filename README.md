@@ -2,7 +2,9 @@
 
 ### Configuration file
 
-The configuration file is named `autobuild.yml`. It should be place on the same
+The configuration file is named either `autobuild.yaml` or `autobuild.yml`. When
+both are found, the former takes precendence over the latter.
+It should be place on the same
 level as the package recipe file (e.g. `package.yml` or `stone.yaml`).
 
 Currently it's still very simple, with the specification as follows:
