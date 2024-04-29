@@ -88,7 +88,7 @@ func TopologicalSort[K cmp.Ordered, T any](g graph.Graph[K, T]) ([][]K, error) {
 
 func LiftGraph(g *graph.Graph[int, int], choose func(int) bool) (res graph.Graph[int, int], err error) {
 	visited := make(map[int]bool)
-	res = graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
+	res = graph.New(graph.IntHash, graph.Directed(), graph.PreventCycles())
 	adjMap, err := (*g).AdjacencyMap()
 
 	if err != nil {
@@ -162,7 +162,7 @@ func liftDfs(node int, parent int, choose func(int) bool, gm map[int]map[int]gra
 	nextp := parent
 	if choose(node) {
 		// println(parent, "->", node)
-		if err := (*res).AddEdge(parent, node, graph.EdgeWeight(1)); err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
+		if err := (*res).AddEdge(parent, node, graph.EdgeWeight(1)); err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) && !errors.Is(err, graph.ErrEdgeCreatesCycle) {
 			return err
 		}
 		nextp = node
