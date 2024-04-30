@@ -35,23 +35,43 @@ type Package struct {
 	Release   int
 	Provides  []string
 	BuildDeps []string
+	Ignores   []string
 	Resolved  bool
 	Built     bool
 	Synced    bool
 }
 
-func (p *Package) Resolve(nameToSrcIdx map[string]int) (res []string) {
+func (p *Package) Resolve(nameToSrcIdx map[string]int, pkgs []Package) (res []string) {
 	if !p.Resolved {
 		p.Resolved = true
 
-		for _, dep := range p.BuildDeps {
-			_, ok := nameToSrcIdx[dep]
+		for idx, dep := range p.BuildDeps {
+			srcIdx, ok := nameToSrcIdx[dep]
 
 			if !ok {
 				p.Resolved = false
 				res = append(res, dep)
+			} else {
+				p.BuildDeps[idx] = pkgs[srcIdx].Name
 			}
 		}
+
+		slices.Sort(p.BuildDeps)
+		p.BuildDeps = utils.Uniq(p.BuildDeps)
+
+		ignoreRegexes := []regexp.Regexp{}
+		for _, ignore := range p.Ignores {
+			ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+		}
+		p.BuildDeps = utils.Filter(p.BuildDeps, func(dep string) bool {
+			for _, regex := range ignoreRegexes {
+				if regex.FindString(dep) != dep {
+					waterlog.Debugf("Package.Resolve: Dropping builddep %s from %s due to ignore regex %s\n", dep, p.Name, regex.String())
+					return false
+				}
+			}
+			return true
+		})
 	}
 
 	return
@@ -135,19 +155,21 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		err = errors.New(fmt.Sprintf("Failed to load autobuild config file for %s: %s", dir, err))
 	}
 
-	ignoreRegexes := []regexp.Regexp{}
+	// ignoreRegexes := []regexp.Regexp{}
 	for _, ignore := range abConfig.Solver.Ignore {
-		ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+		// ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+		pkg.Ignores = append(pkg.Ignores, ignore)
 	}
-	pkg.BuildDeps = utils.Filter(pkg.BuildDeps, func(dep string) bool {
-		for _, regex := range ignoreRegexes {
-			if regex.FindString(dep) == dep {
-				waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, pkg.Name, regex.String())
-				return false
-			}
-		}
-		return true
-	})
+	// pkg.BuildDeps = utils.Filter(pkg.BuildDeps, func(dep string) bool {
+	// 	for _, regex := range ignoreRegexes {
+	// 		if regex.FindString(dep) == dep {
+	// 			waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, pkg.Name, regex.String())
+	// 			return false
+	// 		}
+	// 	}
+	// 	return true
+	// })
+
 	slices.Sort(pkg.BuildDeps)
 	slices.Sort(pkg.Provides)
 

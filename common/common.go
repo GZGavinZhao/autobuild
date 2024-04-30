@@ -37,7 +37,7 @@ func PrepareSrcAndDepGraph(sourcesPath string, indexPath string) (srcPkgs []Pack
 	// when `a` is a new package that has yet to be built locally and some
 	// package `b` depends on `a-devel`.
 	for idx := range srcPkgs {
-		srcPkgs[idx].Resolve(nameToSrcIdx)
+		srcPkgs[idx].Resolve(nameToSrcIdx, srcPkgs)
 	}
 
 	waterlog.Goodln("Dependency resolving complete. Now scanning binary index...")

@@ -106,7 +106,7 @@ func runPush(cmd *cobra.Command, args []string) {
 	var unresolved []common.Package
 	for _, pkg := range bumped {
 		// TODO: we should probably just be able to call pkg.Resolved?
-		if len(pkg.Resolve(newState.NameToSrcIdx())) > 0 {
+		if len(pkg.Resolve(newState.NameToSrcIdx(), newState.Packages())) > 0 {
 			unresolved = append(unresolved, pkg)
 		}
 	}

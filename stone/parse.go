@@ -5,47 +5,90 @@
 package stone
 
 import (
+	"errors"
+	"fmt"
 	"path/filepath"
+	_ "regexp"
+	"slices"
 
+	_ "github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/config"
 	"github.com/GZGavinZhao/autobuild/utils"
 )
 
 func ParsePackage(path string) (cpkg common.Package, err error) {
 	manifestPath := filepath.Join(path, "manifest.x86_64.bin")
+
 	if utils.PathExists(manifestPath) {
-		return ParseManifest(manifestPath)
+		if cpkg, err = ParseManifest(manifestPath); err != nil {
+			return
+		}
+	} else {
+		// TODO: the below is much more incomplete than the .bin parsing.
+		// We may need to fallback to `.yml` parsing in the case of inspecting
+		// build order before a package is build.
+		stonePath := filepath.Join(path, "stone.yaml")
+		if !utils.PathExists(stonePath) {
+			return
+		}
+
+		spkg, err := Load(stonePath)
+		if err != nil {
+			return cpkg, err
+		}
+
+		cpkg = common.Package{
+			Path:      stonePath,
+			Name:      spkg.Name,
+			Version:   spkg.Version,
+			Release:   spkg.Release,
+			BuildDeps: append(spkg.BuildDeps, spkg.CheckDeps...),
+			Synced:    false,
+		}
+
+		cpkg.BuildDeps = append(cpkg.BuildDeps, spkg.CollectRunDeps()...)
+
+		if spkg.Toolchain == "clang" {
+			cpkg.BuildDeps = append(cpkg.BuildDeps, "llvm-clang-devel")
+		} else if spkg.Toolchain == "gnu" {
+			cpkg.BuildDeps = append(cpkg.BuildDeps, "gcc-devel")
+		}
 	}
 
-	// TODO: the below is much more incomplete than the .bin parsing.
-	// We may need to fallback to `.yml` parsing in the case of inspecting
-	// build order before a package is build.
-	stonePath := filepath.Join(path, "stone.yaml")
-	if !utils.PathExists(stonePath) {
-		return
+	for _, cfgBase := range []string{"autobuild.yaml", "autobuild.yml"} {
+		cfgPath := filepath.Join(path, cfgBase)
+
+		if !utils.PathExists(cfgPath) {
+			continue
+		}
+
+		abConfig, err := config.Load(cfgPath)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("Failed to load autobuild config file for %s: %s", path, err))
+			return cpkg, err
+		}
+
+		// ignoreRegexes := []regexp.Regexp{}
+		for _, ignore := range abConfig.Solver.Ignore {
+			cpkg.Ignores = append(cpkg.Ignores, ignore)
+			// ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+		}
+		// cpkg.BuildDeps = utils.Filter(cpkg.BuildDeps, func(dep string) bool {
+		// 	for _, regex := range ignoreRegexes {
+		// 		if regex.FindString(dep) != "" {
+		// 			waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, cpkg.Name, regex.String())
+		// 			return false
+		// 		}
+		// 	}
+		// 	return true
+		// })
+
+		break
 	}
 
-	spkg, err := Load(stonePath)
-	if err != nil {
-		return
-	}
-
-	cpkg = common.Package{
-		Path:      stonePath,
-		Name:      spkg.Name,
-		Version:   spkg.Version,
-		Release:   spkg.Release,
-		BuildDeps: append(spkg.BuildDeps, spkg.CheckDeps...),
-		Synced:    false,
-	}
-
-	cpkg.BuildDeps = append(cpkg.BuildDeps, spkg.CollectRunDeps()...)
-
-	if spkg.Toolchain == "clang" {
-		cpkg.BuildDeps = append(cpkg.BuildDeps, "llvm-clang-devel")
-	} else if spkg.Toolchain == "gnu" {
-		cpkg.BuildDeps = append(cpkg.BuildDeps, "gcc-devel")
-	}
-
+	slices.Sort(cpkg.BuildDeps)
+	slices.Sort(cpkg.Provides)
+	// waterlog.Debugf("%s: %q\n", cpkg.Name, cpkg.BuildDeps)
 	return
 }

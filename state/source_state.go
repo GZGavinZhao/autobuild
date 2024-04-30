@@ -186,7 +186,7 @@ func LoadSource(path string) (state *SourceState, err error) {
 	}
 
 	for idx := range state.packages {
-		state.packages[idx].Resolve(state.nameToSrcIdx)
+		state.packages[idx].Resolve(state.nameToSrcIdx, state.packages)
 	}
 
 	// fmt.Println("result:", state)
