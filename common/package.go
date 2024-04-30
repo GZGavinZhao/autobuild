@@ -65,7 +65,7 @@ func (p *Package) Resolve(nameToSrcIdx map[string]int, pkgs []Package) (res []st
 		}
 		p.BuildDeps = utils.Filter(p.BuildDeps, func(dep string) bool {
 			for _, regex := range ignoreRegexes {
-				if regex.FindString(dep) != dep {
+				if regex.FindString(dep) == dep {
 					waterlog.Debugf("Package.Resolve: Dropping builddep %s from %s due to ignore regex %s\n", dep, p.Name, regex.String())
 					return false
 				}
