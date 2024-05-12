@@ -5,12 +5,25 @@
 package cmd
 
 import (
+	"runtime/debug"
+
 	"github.com/DataDrake/waterlog"
 	"github.com/DataDrake/waterlog/format"
 	"github.com/spf13/cobra"
 )
 
 var (
+	GitCommit = func() string {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			for _, setting := range info.Settings {
+				if setting.Key == "vcs.revision" {
+					return setting.Value
+				}
+			}
+		}
+		return ""
+	}()
+
 	rootCmd = &cobra.Command{
 		Use:   "autobuild",
 		Short: "Automatically query, build, and push packages elegantly.",
@@ -24,6 +37,7 @@ var (
 				waterlog.SetLevel(6)
 			}
 		},
+		Version: "0.0.0+" + GitCommit,
 	}
 )
 

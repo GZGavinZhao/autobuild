@@ -1,5 +1,15 @@
 ## Usage
 
+To compile `autobuild`:
+```bash
+go build -buildvcs .
+```
+
+Or compile and run directly:
+```bash
+go run -buildvcs . <args-to-autobuild>
+```
+
 ### Configuration file
 
 The configuration file is named either `autobuild.yaml` or `autobuild.yml`. When
