@@ -6,7 +6,6 @@ package state
 
 import (
 	"cmp"
-	"errors"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -19,7 +18,7 @@ import (
 	"github.com/GZGavinZhao/autobuild/stone"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/charlievieth/fastwalk"
-	"github.com/dominikbraun/graph"
+	"github.com/yourbasic/graph"
 )
 
 var (
@@ -28,8 +27,8 @@ var (
 
 type SourceState struct {
 	packages     []common.Package
+	depGraph     *graph.Immutable
 	nameToSrcIdx map[string]int
-	depGraph     *graph.Graph[int, int]
 	isGit        bool
 }
 
@@ -37,15 +36,12 @@ func (s *SourceState) Packages() []common.Package {
 	return s.packages
 }
 
-func (s *SourceState) NameToSrcIdx() map[string]int {
-	return s.nameToSrcIdx
+func (s *SourceState) DepGraph() *graph.Immutable {
+	return s.depGraph
 }
 
-func (s *SourceState) DepGraph() *graph.Graph[int, int] {
-	if s.depGraph == nil {
-		s.buildGraph()
-	}
-	return s.depGraph
+func (s *SourceState) NameToSrcIdx() map[string]int {
+	return s.nameToSrcIdx
 }
 
 func (s *SourceState) IsGit() bool {
@@ -53,30 +49,7 @@ func (s *SourceState) IsGit() bool {
 }
 
 func (s *SourceState) buildGraph() {
-	g := graph.New(graph.IntHash, graph.Directed(), graph.Acyclic())
-
-	for pkgIdx, pkg := range s.packages {
-		attrsFunc := func(p *graph.VertexProperties) {
-			p.Attributes["label"] = fmt.Sprintf("%s %d", pkg.Name, pkgIdx)
-			p.Attributes["color"] = "2"
-			p.Attributes["fillcolor"] = "1"
-			if pkg.Synced {
-				// if !pkg.Resolved {
-				// 	waterlog.Fatalf("Package %s is synced but not all of its dependencies are solved!", pkg.Name)
-				// }
-				p.Attributes["colorscheme"] = "greens3"
-				p.Attributes["style"] = "filled"
-			} else if !pkg.Resolved {
-				p.Attributes["colorscheme"] = "reds3"
-				p.Attributes["style"] = "filled"
-			} else if !pkg.Synced {
-				p.Attributes["colorscheme"] = "ylorbr3"
-				p.Attributes["style"] = "filled"
-			}
-		}
-
-		g.AddVertex(pkgIdx, attrsFunc)
-	}
+	g := graph.New(len(s.packages))
 
 	for pkgIdx, pkg := range s.packages {
 		for _, dep := range pkg.BuildDeps {
@@ -84,15 +57,12 @@ func (s *SourceState) buildGraph() {
 			if !depFound {
 				// waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Name)
 			} else if pkgIdx != depIdx {
-				err := g.AddEdge(depIdx, pkgIdx, graph.EdgeWeight(1))
-				if err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
-					panic(errors.New(fmt.Sprintf("Failed to create edge from %s to %s: %s\n", dep, pkg.Name, err)))
-				}
+				g.Add(depIdx, pkgIdx)
 			}
 		}
 	}
 
-	s.depGraph = &g
+	s.depGraph = graph.Sort(g)
 }
 
 func LoadSource(path string) (state *SourceState, err error) {
@@ -187,8 +157,10 @@ func LoadSource(path string) (state *SourceState, err error) {
 
 	for idx := range state.packages {
 		state.packages[idx].Resolve(state.nameToSrcIdx, state.packages)
+		// fmt.Printf("%d %s: %q\n", idx, state.Packages[idx].Name, state.Packages[idx].BuildDeps)
 	}
 
 	// fmt.Println("result:", state)
+	state.buildGraph()
 	return
 }

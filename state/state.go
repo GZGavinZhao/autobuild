@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/GZGavinZhao/autobuild/common"
-	"github.com/dominikbraun/graph"
+	"github.com/yourbasic/graph"
 )
 
 var (
@@ -20,7 +20,28 @@ var (
 type State interface {
 	Packages() []common.Package
 	NameToSrcIdx() map[string]int
-	DepGraph() *graph.Graph[int, int]
+	DepGraph() *graph.Immutable
+	// GetPackage(string) (common.Package, int)
+	// GetPackageIdx(string) int
+	// PackageExists(string) bool
+}
+
+func GetPackage(s State, name string) (common.Package, int) {
+	idx, ok := s.NameToSrcIdx()[name]
+	if !ok {
+		return common.Package{}, -1
+	} else {
+		return s.Packages()[idx], idx
+	}
+}
+
+func GetPackageIdx(s State, name string) int {
+	return s.NameToSrcIdx()[name]
+}
+
+func PackageExists(s State, name string) bool {
+	_, ok := s.NameToSrcIdx()[name]
+	return ok
 }
 
 func ValidTPath(tpath string) bool {

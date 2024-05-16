@@ -43,8 +43,8 @@ var (
 
 func init() {
 	rootCmd.AddCommand(cmdQuery)
-	rootCmd.AddCommand(cmdDiff)
-	rootCmd.AddCommand(cmdPush)
+	// rootCmd.AddCommand(cmdDiff)
+	// rootCmd.AddCommand(cmdPush)
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet output")

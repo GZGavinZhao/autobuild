@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	"github.com/GZGavinZhao/autobuild/common"
-	"github.com/dominikbraun/graph"
+	"github.com/yourbasic/graph"
 	"github.com/getsolus/libeopkg/index"
 	"github.com/ulikunitz/xz"
 )
@@ -18,7 +18,7 @@ import (
 type BinaryState struct {
 	packages     []common.Package
 	nameToSrcIdx map[string]int
-	depGraph     *graph.Graph[int, int]
+	depGraph     *graph.Immutable
 	isGit        bool
 }
 
@@ -30,7 +30,7 @@ func (s *BinaryState) NameToSrcIdx() map[string]int {
 	return s.nameToSrcIdx
 }
 
-func (s *BinaryState) DepGraph() *graph.Graph[int, int] {
+func (s *BinaryState) DepGraph() *graph.Immutable {
 	return s.depGraph
 }
 

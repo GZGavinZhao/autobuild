@@ -6,21 +6,24 @@ toolchain go1.21.6
 
 require (
 	github.com/DataDrake/waterlog v1.2.0
+	github.com/GZGavinZhao/libstone-go v0.0.0-20240129032428-4a8a7da0580b
 	github.com/briandowns/spinner v1.23.0
 	github.com/charlievieth/fastwalk v1.0.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dominikbraun/graph v0.23.0
 	github.com/fatih/color v1.16.0
 	github.com/getsolus/libeopkg v0.1.1-0.20230924201845-7f2598d34467
+	github.com/klauspost/compress v1.17.5
 	github.com/spf13/cobra v1.8.0
+	github.com/zeebo/blake3 v0.2.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/GZGavinZhao/libstone-go v0.0.0-20240129032428-4a8a7da0580b // indirect
-	github.com/klauspost/compress v1.17.5 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	golang.org/x/term v0.15.0 // indirect
 )
 
