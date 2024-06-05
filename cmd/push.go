@@ -22,10 +22,18 @@ import (
 
 var (
 	cmdPush = &cobra.Command{
-		Use:   "push <[src|bin|repo]:path-to-old> <[src|bin|repo]:path-to-new>",
+		Use:   "push <[src|bin|repo]:path-to-old> <[src|bin|repo]:path-to-new> <packages-to-push>",
 		Short: "Push package changes to the build server",
-		Run:   runPush,
-		Args:  cobra.ExactArgs(2),
+		Long: `Essentially the same as query, but also push the packages to the build server.
+
+When no arguments are passed, it tries to diff the new and old state to find 
+the packages that are updated and push them. Otherwise, it will only try to 
+push the packages that are passed.
+
+If you get a cycles output, query the build order of those packages with 
+autobuild query to get a more detailed output on the cycle.
+`,
+		Run: runPush,
 	}
 )
 
@@ -53,17 +61,43 @@ func runPush(cmd *cobra.Command, args []string) {
 	}
 	waterlog.Goodln("Successfully parsed new state!")
 
-	waterlog.Infoln("Diffing...")
-	changes := state.Changed(&oldState, &newState)
-
 	bumped := []common.Package{}
 	bset := make(map[int]bool)
 	outdated := []common.Package{}
 	bad := []common.Package{}
 
+	waterlog.Infoln("Diffing...")
+	var changes []state.Diff
+	if len(args) > 2 {
+		for _, name := range args[2:] {
+			oldPkg, oldIdx := state.GetPackage(oldState, name)
+			if oldIdx == -1 {
+				waterlog.Fatalf("Cannot find %s in old state!\n", name)
+			}
+
+			newPkg, newIdx := state.GetPackage(newState, name)
+			if newIdx == -1 {
+				waterlog.Fatalf("Cannot find %s in old state!\n", name)
+			}
+
+			changes = append(changes, state.Diff{
+				Idx:       newIdx,
+				OldIdx:    oldIdx,
+				RelNum:    newPkg.Release,
+				OldRelNum: oldPkg.Release,
+				Ver:       newPkg.Version,
+				OldVer:    oldPkg.Version,
+			})
+		}
+	} else {
+		changes = state.Changed(&oldState, &newState)
+	}
+
 	for _, diff := range changes {
 		pkg := newState.Packages()[diff.Idx]
-		if diff.IsNewRel() {
+		if diff.IsSame() {
+			waterlog.Warnf("Package %s hasn't changed, skipping...\n", pkg.Name)
+		} else if diff.IsNewRel() {
 			bumped = append(bumped, pkg)
 			bset[diff.Idx] = true
 		} else if diff.IsSameRel() && !diff.IsSame() {
@@ -155,7 +189,7 @@ func runPush(cmd *cobra.Command, args []string) {
 				continue
 			}
 
-			waterlog.Debugf("Cycle %d:", cycleIdx+1)
+			waterlog.Warnf("Cycle %d:", cycleIdx+1)
 			cycleIdx++
 
 			for _, nodeIdx := range cycle {
@@ -163,7 +197,7 @@ func runPush(cmd *cobra.Command, args []string) {
 			}
 			waterlog.Println()
 		}
-		waterlog.Fatalf("Failed to compute build order: %s\n", err)
+		waterlog.Fatalln("Failed to compute build order: lifted graph has cycles! Run `autobuild query` on the cycle to get more info.")
 	}
 
 	waterlog.Goodln("Here's the build order:")
