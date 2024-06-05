@@ -20,6 +20,8 @@ var (
 	tiers    bool
 	forward  int
 	reverse  int
+	detailed bool
+
 	cmdQuery = &cobra.Command{
 		Use:   "query [src|bin|repo:path] [packages]",
 		Short: "Query the build order of the given packages",
@@ -37,10 +39,14 @@ When no arguments are passed, it tries to compute a build order of all the packa
 )
 
 func init() {
-	cmdQuery.Flags().StringVar(&dotPath, "dot", "", "stores the final build graph at the specified location in the DOT format")
+	cmdQuery.Flags().StringVar(&dotPath, "dot", "", "store the final build graph at the specified location in the DOT format")
 	cmdQuery.Flags().BoolVarP(&tiers, "tiers", "t", false, "output tier-ed build order")
 	cmdQuery.Flags().IntVarP(&forward, "forward", "F", 0, "extra level(s) of packages that depends on the list provided")
 	cmdQuery.Flags().IntVarP(&reverse, "reverse", "R", 0, "extra level(s) of packages that the list provided depends on")
+	// TODO(GZGavinZhao): do we always want detailed output?
+	// Maybe we should output packages that are not parts of the query but are
+	// on the dependency chain with a different color?
+	cmdQuery.Flags().BoolVar(&detailed, "detailed", true, "report more detailed dependency chains during cycles output")
 }
 
 func runQuery(cmd *cobra.Command, args []string) {
@@ -181,24 +187,21 @@ func runQuery(cmd *cobra.Command, args []string) {
 			nextIdx := (startIdx + 1) % len(cycle)
 
 			// We always want the longer shortest path
-			path1, dist := graph.ShortestPath(lifted, cycle[startIdx], cycle[nextIdx])
-			if dist == -1 {
-				waterlog.Errorf("Failed to calculate dependency chain that formed this cycle: unreachable\n")
+			var depPath []int
+			if detailed {
+				depPath = utils.LongerShortestPath(depGraph, cycle[startIdx], cycle[nextIdx])
+			} else {
+				depPath = utils.LongerShortestPath(lifted, cycle[startIdx], cycle[nextIdx])
 			}
-			path2, dist := graph.ShortestPath(lifted, cycle[nextIdx], cycle[startIdx])
-			if dist == -1 {
-				waterlog.Errorf("Failed to calculate dependency chain that formed this cycle: unreachale\n")
-			}
-
-			if len(path1) < len(path2) {
-				path1 = path2
+			if len(depPath) < 2 {
+				waterlog.Fatalf("Failed to calculate dependency path that led to this cycle, got: %q\n", depPath)
 			}
 
 			waterlog.Warnln("One of the dependency chains that led to this cycle:")
-			for _, pidx := range path1 {
+			for _, pidx := range depPath {
 				waterlog.Printf("%s -> ", state.Packages()[pidx].Name)
 			}
-			waterlog.Println(state.Packages()[path1[0]].Name)
+			waterlog.Println(state.Packages()[depPath[0]].Name)
 		}
 		// } else {
 		// 	waterlog.Errorf("Failed to get SCC: %s\n", err)

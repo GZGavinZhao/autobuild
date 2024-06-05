@@ -296,3 +296,16 @@ func GraphHash(g *graph.Immutable) string {
 	hashBytes := blake3.Sum256([]byte(g.String()))
 	return base64.StdEncoding.EncodeToString(hashBytes[:])
 }
+
+func LongerShortestPath(g graph.Iterator, u int, v int) []int {
+	path1, dist1 := graph.ShortestPath(g, u, v)
+	path2, dist2 := graph.ShortestPath(g, v, u)
+
+	if dist1 == -1 && dist2 == -1 {
+		return []int{}
+	} else if len(path1) < len(path2) {
+		return path2
+	} else {
+		return path1
+	}
+}
