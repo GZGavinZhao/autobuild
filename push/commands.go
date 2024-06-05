@@ -33,11 +33,13 @@ func Publish(pkg common.Package, prePush bool) (job Job, err error) {
 	// Open the repository
 	repo, err := git.PlainOpen(root)
 	if err != nil {
+		err = fmt.Errorf("Failed to open git repository at %s: %w", root, err)
 		return
 	}
 
 	ref, err := repo.Head()
 	if err != nil {
+		err = fmt.Errorf("Failed to get HEAD of repository at %s: %w", root, err)
 		return
 	}
 
