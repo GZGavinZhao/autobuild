@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/DataDrake/waterlog"
@@ -26,11 +27,11 @@ var (
 		Short: "Push package changes to the build server",
 		Long: `Essentially the same as query, but also push the packages to the build server.
 
-When no arguments are passed, it tries to diff the new and old state to find 
-the packages that are updated and push them. Otherwise, it will only try to 
+When no arguments are passed, it tries to diff the new and old state to find
+the packages that are updated and push them. Otherwise, it will only try to
 push the packages that are passed.
 
-If you get a cycles output, query the build order of those packages with 
+If you get a cycles output, query the build order of those packages with
 autobuild query to get a more detailed output on the cycle.
 `,
 		Run: runPush,
@@ -41,6 +42,7 @@ func init() {
 	cmdPush.Flags().BoolP("force", "f", false, "whether to ignore safety checks")
 	cmdPush.Flags().BoolP("dry-run", "n", true, "don't publish anything")
 	cmdPush.Flags().BoolP("push", "p", true, "git push packages before publishing")
+	cmdPush.Flags().StringSliceP("exclude", "e", []string{}, "Exclude a list of comma seperated package(s) from push")
 }
 
 func runPush(cmd *cobra.Command, args []string) {
@@ -93,8 +95,19 @@ func runPush(cmd *cobra.Command, args []string) {
 		changes = state.Changed(&oldState, &newState)
 	}
 
+	force, _ := cmd.Flags().GetBool("force")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	prePush, _ := cmd.Flags().GetBool("push")
+	exclude, _ := cmd.Flags().GetStringSlice("exclude")
+
 	for _, diff := range changes {
 		pkg := newState.Packages()[diff.Idx]
+
+		if slices.Contains(exclude, pkg.Name) {
+			waterlog.Infof("Excluding %s from push state\n", pkg.Name)
+			continue
+		}
+
 		if diff.IsSame() {
 			waterlog.Warnf("Package %s hasn't changed, skipping...\n", pkg.Name)
 		} else if diff.IsNewRel() {
@@ -106,10 +119,6 @@ func runPush(cmd *cobra.Command, args []string) {
 			outdated = append(outdated, pkg)
 		}
 	}
-
-	force, _ := cmd.Flags().GetBool("force")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	prePush, _ := cmd.Flags().GetBool("push")
 
 	if len(bad) != 0 {
 		waterlog.Warnf("The following packages have the same release number but different version:")
