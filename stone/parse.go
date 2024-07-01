@@ -20,24 +20,29 @@ import (
 func ParsePackage(path string) (cpkg common.Package, err error) {
 	manifestPath := filepath.Join(path, "manifest.x86_64.bin")
 
+	stonePath := filepath.Join(path, "stone.yaml")
+	if !utils.PathExists(stonePath) {
+		return
+	}
+
+	spkg, err := Load(stonePath)
+	if err != nil {
+		return
+	}
+
 	if utils.PathExists(manifestPath) {
 		if cpkg, err = ParseManifest(manifestPath); err != nil {
+			return
+		}
+
+		if cpkg.Name != spkg.Name {
+			err = fmt.Errorf("Manifest and stone.yml name mismatch: manifest has %s, stone.yml has %s", cpkg.Name, spkg.Name)
 			return
 		}
 	} else {
 		// TODO: the below is much more incomplete than the .bin parsing.
 		// We may need to fallback to `.yml` parsing in the case of inspecting
 		// build order before a package is build.
-		stonePath := filepath.Join(path, "stone.yaml")
-		if !utils.PathExists(stonePath) {
-			return
-		}
-
-		spkg, err := Load(stonePath)
-		if err != nil {
-			return cpkg, err
-		}
-
 		cpkg = common.Package{
 			Path:      stonePath,
 			Name:      spkg.Name,
