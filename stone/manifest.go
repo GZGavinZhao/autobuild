@@ -1,26 +1,42 @@
 package stone
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/config"
+	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/serpent-os/libstone-go"
 	"github.com/serpent-os/libstone-go/stone1"
 )
 
-// func getCompressionReader(r io.ReaderAt, compressionType payload.Compression, offset, length int64) (io.Reader, error) {
-// 	switch compressionType {
-// 	case payload.CompressionNone:
-// 		return io.NewSectionReader(r, offset, length), nil
-// 	case payload.CompressionZstd:
-// 		return zstd.NewReader(io.NewSectionReader(r, offset, length))
-// 	}
-// 	return nil, errors.New("Unknown compression type")
-// }
+var (
+	badProviders = [...]string{"soname(libz.so.1(x86))", "soname(libclang.so.15(x86_64))", "soname(libc.so.6(386))"}
+)
 
-func ParseManifest(path string) (cpkg common.Package, err error) {
+func ParseManifest(path string, abconfig config.AutobuildConfig) (cpkgs []common.Package, err error) {
+	// Prepare the `cpkg`-s that result from splitting.
+	// `cpkgs[0]` is the default cpkg to read info into.
+	// Starting from index 1 are the `cpkg` that are
+	// `split`-ted
+	cpkgs = append(cpkgs, common.Package{
+		Ignores: abconfig.Solver.Ignore,
+	})
+	nameToIdx := make(map[string]int)
+
+	for _, split := range abconfig.Solver.Split {
+		nameToIdx[split] = len(cpkgs)
+		cpkgs = append(cpkgs, common.Package{
+			Ignores: abconfig.Solver.Ignore,
+		})
+	}
+
+	// Open the manifest and read from it.
 	file, err := os.Open(path)
 	if err != nil {
 		err = fmt.Errorf("Failed to open manifest %s, reason: %w", path, err)
@@ -47,27 +63,45 @@ func ParseManifest(path string) (cpkg common.Package, err error) {
 
 	rdr := stone1.NewReader(prelude, file, cache)
 
+	// Each iteraton is a sub-package.
 	for rdr.NextPayload() {
 		if rdr.Header.Kind != stone1.Meta {
 			continue
 		}
 
+		// WARNING:
+		// We rely on the convention that the first field in meta is Name, so we
+		// know which splitted package this should belong to.
+		var cpkg *common.Package
 		for rdr.NextRecord() {
 			switch record := rdr.Record.(type) {
 			case *stone1.MetaRecord:
 				switch record.Tag {
 				case stone1.SourceID:
-					cpkg.Name = record.Field.String()
+					cpkg.Source = record.Field.String()
 				case stone1.Version:
 					cpkg.Version = record.Field.String()
 				case stone1.Release:
 					cpkg.Release = int(record.Field.Value.(uint64))
 				case stone1.Depends:
-					cpkg.BuildDeps = append(cpkg.BuildDeps, record.Field.String())
+					dep := record.Field.String()
+					if slices.Contains(badProviders[:], dep) {
+						break
+					}
+					if tos, ok := abconfig.Solver.Move[dep]; ok {
+						for _, to := range tos {
+							cpkgs[nameToIdx[to]].BuildDeps = append(cpkgs[nameToIdx[to]].BuildDeps, dep)
+						}
+					} else {
+						cpkg.BuildDeps = append(cpkg.BuildDeps, dep)
+					}
 				case stone1.Provides:
 					cpkg.Provides = append(cpkg.Provides, record.Field.String())
 				case stone1.Name:
 					pkgName := record.Field.String()
+					cpkg = &cpkgs[nameToIdx[pkgName]]
+
+					cpkg.Names = append(cpkg.Names, pkgName)
 					cpkg.Provides = append(cpkg.Provides, fmt.Sprintf("name(%s)", pkgName))
 					// Implcitily assume that `X-dbginfo` is provieded by
 					// package `X`.
@@ -85,74 +119,27 @@ func ParseManifest(path string) (cpkg common.Package, err error) {
 		}
 	}
 
-	// packageHeader, err := header.ReadHeader(io.NewSectionReader(file, 0, 32))
-	// if err != nil {
-	// 	err = fmt.Errorf("Failed to read package header: %w", err)
-	// 	return
-	// }
-	//
-	// var pos int64
-	// pos += 32
-	// for i := 0; i < int(packageHeader.Data.NumPayloads); i++ {
-	// 	payloadheader, err := payload.ReadPayloadHeader(io.NewSectionReader(file, pos, 32))
-	// 	if err != nil {
-	// 		return cpkg, fmt.Errorf("Failed to read payload header: %w", err)
-	// 	}
-	//
-	// 	pos += 32
-	//
-	// 	payloadReader, err := getCompressionReader(file, payloadheader.Compression, pos, int64(payloadheader.StoredSize))
-	// 	if err != nil {
-	// 		return cpkg, fmt.Errorf("Failed to get compression reader: %w", err)
-	// 	}
-	//
-	// 	pos += int64(payloadheader.StoredSize)
-	//
-	// 	if payloadheader.Kind == payload.KindMeta {
-	// 		// payload.PrintMetaPayload(payloadReader, int(payloadheader.NumRecords))
-	//
-	// 		bufferedReader := bufio.NewReader(payloadReader)
-	// 		for j := 0; j < int(payloadheader.NumRecords); j++ {
-	// 			record := payload.MetaRecord{}
-	//
-	// 			if err = binary.Read(bufferedReader, binary.BigEndian, &record); err != nil {
-	// 				return cpkg, err
-	// 			}
-	//
-	// 			data, err := payload.ReadRecordData(bufferedReader, record.RecordType)
-	// 			if err != nil {
-	// 				return cpkg, err
-	// 			}
-	//
-	// 			if stringData, ok := data.(string); ok {
-	// 				data = strings.TrimSuffix(stringData, "\x00")
-	// 			}
-	//
-	// 			switch record.RecordTag {
-	// 			case payload.RecordTagSourceID:
-	// 				cpkg.Name = data.(string)
-	// 			case payload.RecordTagVersion:
-	// 				cpkg.Version = data.(string)
-	// 			case payload.RecordTagRelease:
-	// 				cpkg.Release = int(data.(uint64))
-	// 			case payload.RecordTagDepends:
-	// 				cpkg.BuildDeps = append(cpkg.BuildDeps, data.(string))
-	// 			case payload.RecordTagProvides:
-	// 				cpkg.Provides = append(cpkg.Provides, data.(string))
-	// 			case payload.RecordTagName:
-	// 				pkgName := data.(string)
-	// 				cpkg.Provides = append(cpkg.Provides, pkgName)
-	// 				// Implcitily assume that `X-dbginfo` is provieded by
-	// 				// package `X`.
-	// 				if !strings.HasPrefix(pkgName, "-dbginfo") {
-	// 					cpkg.Provides = append(cpkg.Provides, pkgName+"-dbginfo")
-	// 				}
-	// 			}
-	// 		}
-	// 	} else {
-	// 		fmt.Println("Warning: ", path, " has a payload that's not Meta!")
-	// 	}
-	// }
+	for idx, cpkg := range cpkgs {
+		// Check if splitted packages are actually set when iterating through
+		// the subpackages.
+		if len(cpkg.Source) == 0 || len(cpkg.Version) == 0 || len(cpkg.Names) == 0 {
+			if idx == 0 {
+				err = errors.New("default package not set properly")
+				return
+			} else {
+				slog.Warn("Split seems to be unnecessary", "split", abconfig.Solver.Split[idx-1], "path", path)
+			}
+		}
+
+		// Sort dependencies for reproducibility
+		slices.Sort(cpkgs[idx].BuildDeps)
+		// fmt.Println(cpkgs[idx].BuildDeps)
+		cpkgs[idx].BuildDeps = utils.Uniq2(cpkgs[idx].BuildDeps)
+		// fmt.Println(cpkgs[idx].BuildDeps)
+
+		slices.Sort(cpkgs[idx].Provides)
+		cpkgs[idx].Provides = utils.Uniq2(cpkgs[idx].Provides)
+	}
 
 	return
 }

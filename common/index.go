@@ -59,7 +59,7 @@ func BuildDepGraph(srcPkgs []Package, nameToSrcIdx map[string]int) (depGraph gra
 
 	for pkgIdx, pkg := range srcPkgs {
 		attrsFunc := func(p *graph.VertexProperties) {
-			p.Attributes["label"] = pkg.Name
+			p.Attributes["label"] = pkg.Show()
 			p.Attributes["color"] = "2"
 			p.Attributes["fillcolor"] = "1"
 			if pkg.Synced {
@@ -88,7 +88,7 @@ func BuildDepGraph(srcPkgs []Package, nameToSrcIdx map[string]int) (depGraph gra
 			} else if pkgIdx != depIdx {
 				err = depGraph.AddEdge(depIdx, pkgIdx, graph.EdgeWeight(1))
 				if err != nil && !errors.Is(err, graph.ErrEdgeAlreadyExists) {
-					err = errors.New(fmt.Sprintf("Failed to create edge from %s to %s: %s\n", dep, pkg.Name, err))
+					err = errors.New(fmt.Sprintf("Failed to create edge from %s to %s: %s\n", dep, pkg.Show(), err))
 					return
 				}
 			}

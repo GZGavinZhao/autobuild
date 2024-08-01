@@ -5,11 +5,11 @@
 package stone
 
 import (
-	"errors"
-	"fmt"
+	_ "errors"
+	// "fmt"
 	"path/filepath"
 	_ "regexp"
-	"slices"
+	// "slices"
 
 	_ "github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
@@ -17,8 +17,40 @@ import (
 	"github.com/GZGavinZhao/autobuild/utils"
 )
 
-func ParsePackage(path string) (cpkg common.Package, err error) {
+func ParsePackage(path string, abconfig config.AutobuildConfig) (cpkgs []common.Package, err error) {
 	manifestPath := filepath.Join(path, "manifest.x86_64.bin")
+
+	// var abConfig config.AutobuildConfig
+	// for _, cfgBase := range []string{"autobuild.yaml", "autobuild.yml"} {
+	// 	cfgPath := filepath.Join(path, cfgBase)
+	//
+	// 	if !utils.PathExists(cfgPath) {
+	// 		continue
+	// 	}
+	//
+	// 	abConfig, err = config.Load(cfgPath)
+	// 	if err != nil {
+	// 		err = errors.New(fmt.Sprintf("Failed to load autobuild config file for %s: %s", path, err))
+	// 		return cpkg, err
+	// 	}
+	//
+	// 	// ignoreRegexes := []regexp.Regexp{}
+	// 	for _, ignore := range abConfig.Solver.Ignore {
+	// 		cpkg.Ignores = append(cpkg.Ignores, ignore)
+	// 		// ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+	// 	}
+	// 	// cpkg.BuildDeps = utils.Filter(cpkg.BuildDeps, func(dep string) bool {
+	// 	// 	for _, regex := range ignoreRegexes {
+	// 	// 		if regex.FindString(dep) != "" {
+	// 	// 			waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, cpkg.Name, regex.String())
+	// 	// 			return false
+	// 	// 		}
+	// 	// 	}
+	// 	// 	return true
+	// 	// })
+	//
+	// 	break
+	// }
 
 	stonePath := filepath.Join(path, "stone.yaml")
 	if !utils.PathExists(stonePath) {
@@ -31,21 +63,22 @@ func ParsePackage(path string) (cpkg common.Package, err error) {
 	}
 
 	if utils.PathExists(manifestPath) {
-		if cpkg, err = ParseManifest(manifestPath); err != nil {
+		if cpkgs, err = ParseManifest(manifestPath, abconfig); err != nil {
 			return
 		}
 
-		if cpkg.Name != spkg.Name {
-			err = fmt.Errorf("Manifest and stone.yml name mismatch: manifest has %s, stone.yml has %s", cpkg.Name, spkg.Name)
-			return
-		}
+		// if cpkg.Name != spkg.Name {
+		// 	err = fmt.Errorf("Manifest and stone.yml name mismatch: manifest has %s, stone.yml has %s", cpkg.Name, spkg.Name)
+		// 	return
+		// }
 	} else {
 		// TODO: the below is much more incomplete than the .bin parsing.
 		// We may need to fallback to `.yml` parsing in the case of inspecting
 		// build order before a package is build.
-		cpkg = common.Package{
+		cpkg := common.Package{
 			Path:      stonePath,
-			Name:      spkg.Name,
+			Names:     []string{spkg.Name},
+			Source:    spkg.Name,
 			Version:   spkg.Version,
 			Release:   spkg.Release,
 			BuildDeps: append(spkg.BuildDeps, spkg.CheckDeps...),
@@ -59,41 +92,12 @@ func ParsePackage(path string) (cpkg common.Package, err error) {
 		} else if spkg.Toolchain == "gnu" {
 			cpkg.BuildDeps = append(cpkg.BuildDeps, "gcc-devel")
 		}
+
+		cpkgs = append(cpkgs, cpkg)
 	}
 
-	for _, cfgBase := range []string{"autobuild.yaml", "autobuild.yml"} {
-		cfgPath := filepath.Join(path, cfgBase)
-
-		if !utils.PathExists(cfgPath) {
-			continue
-		}
-
-		abConfig, err := config.Load(cfgPath)
-		if err != nil {
-			err = errors.New(fmt.Sprintf("Failed to load autobuild config file for %s: %s", path, err))
-			return cpkg, err
-		}
-
-		// ignoreRegexes := []regexp.Regexp{}
-		for _, ignore := range abConfig.Solver.Ignore {
-			cpkg.Ignores = append(cpkg.Ignores, ignore)
-			// ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
-		}
-		// cpkg.BuildDeps = utils.Filter(cpkg.BuildDeps, func(dep string) bool {
-		// 	for _, regex := range ignoreRegexes {
-		// 		if regex.FindString(dep) != "" {
-		// 			waterlog.Debugf("Dropping builddep %s from %s due to ignore regex %s\n", dep, cpkg.Name, regex.String())
-		// 			return false
-		// 		}
-		// 	}
-		// 	return true
-		// })
-
-		break
-	}
-
-	slices.Sort(cpkg.BuildDeps)
-	slices.Sort(cpkg.Provides)
+	// slices.Sort(cpkg.BuildDeps)
+	// slices.Sort(cpkg.Provides)
 	// waterlog.Debugf("%s: %q\n", cpkg.Name, cpkg.BuildDeps)
 	return
 }

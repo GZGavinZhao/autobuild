@@ -19,15 +19,20 @@ var (
 
 type State interface {
 	Packages() []common.Package
-	NameToSrcIdx() map[string]int
+	SrcToPkgIds() map[string][]int
+	PvdToPkgIdx() map[string]int
 	DepGraph() *graph.Immutable
 	// GetPackage(string) (common.Package, int)
 	// GetPackageIdx(string) int
 	// PackageExists(string) bool
 }
 
-func GetPackage(s State, name string) (common.Package, int) {
-	idx, ok := s.NameToSrcIdx()[name]
+func GetSourceIds(s State, name string) ([]int) {
+	return s.SrcToPkgIds()[name]
+}
+
+func GetPackage(s State, pvd string) (common.Package, int) {
+	idx, ok := s.PvdToPkgIdx()[pvd]
 	if !ok {
 		return common.Package{}, -1
 	} else {
@@ -35,12 +40,12 @@ func GetPackage(s State, name string) (common.Package, int) {
 	}
 }
 
-func GetPackageIdx(s State, name string) int {
-	return s.NameToSrcIdx()[name]
+func GetPackageIdx(s State, pvd string) int {
+	return s.PvdToPkgIdx()[pvd]
 }
 
-func PackageExists(s State, name string) bool {
-	_, ok := s.NameToSrcIdx()[name]
+func PackageExists(s State, pvd string) bool {
+	_, ok := s.PvdToPkgIdx()[pvd]
 	return ok
 }
 
@@ -74,7 +79,13 @@ func LoadState(tpath string) (state State, err error) {
 
 func Changed(old *State, cur *State) (res []Diff) {
 	for idx, pkg := range (*cur).Packages() {
-		oldIdx, found := (*old).NameToSrcIdx()[pkg.Name]
+		// WARNING:
+		// we assume that packages that correspond to the same source recipe
+		// always have the same release number and version.
+		//
+		// In general, this should always hold, but we should probably check it
+		// somewhere.
+		oldIds, found := (*old).SrcToPkgIds()[pkg.Source]
 
 		if !found {
 			res = append(res, Diff{
@@ -85,11 +96,11 @@ func Changed(old *State, cur *State) (res []Diff) {
 			continue
 		}
 
-		oldPkg := (*old).Packages()[oldIdx]
+		oldPkg := (*old).Packages()[oldIds[0]]
 		if oldPkg.Release != pkg.Release || oldPkg.Version != pkg.Version {
 			res = append(res, Diff{
 				Idx:       idx,
-				OldIdx:    oldIdx,
+				OldIdx:    oldIds[0],
 				RelNum:    pkg.Release,
 				OldRelNum: oldPkg.Release,
 				Ver:       pkg.Version,

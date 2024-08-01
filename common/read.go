@@ -64,7 +64,7 @@ func ReadSrcPkgs(path string) (pkgs []Package, err error) {
 
 		// ch <- pkg
 		mutex.Lock()
-		pkgs = append(pkgs, pkg)
+		pkgs = append(pkgs, pkg...)
 		mutex.Unlock()
 
 		return filepath.SkipDir

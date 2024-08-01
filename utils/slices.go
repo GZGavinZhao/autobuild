@@ -13,7 +13,7 @@ func Filter[T any](a []T, test func(T) bool) []T {
 }
 
 func Uniq[T comparable](a []T) []T {
-	if (len(a) == 0) {
+	if len(a) == 0 {
 		return a
 	}
 
@@ -23,11 +23,31 @@ func Uniq[T comparable](a []T) []T {
 			continue
 		}
 
-		if b[len(b) - 1] != x {
+		if b[len(b)-1] != x {
 			b = append(b, x)
 		}
 	}
 	return b
+}
+
+func Uniq2[T comparable](a []T) []T {
+	if len(a) == 0 {
+		return a 
+	}
+	l := 0
+
+	for i := range a {
+		if i == 0 {
+			continue
+		}
+
+		if a[i] != a[l] {
+			l++
+			a[l] = a[i]
+		}
+	}
+
+	return a[:l+1]
 }
 
 func Flatten[T any](a [][]T) []T {

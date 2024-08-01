@@ -23,11 +23,17 @@ var (
 	detailed bool
 
 	cmdQuery = &cobra.Command{
-		Use:   "query [src|bin|repo:path] [packages]",
-		Short: "Query the build order of the given packages",
-		Long: `Query the build order of the given packages. For example: autobuild query src:../packages rocm-clr pytorch
+		Use:   "query [src|bin|repo:path] [names/providers]",
+		Short: "Query the build order of the given source recipes and providers",
+		Long: `Query the build order of the given source recipes or the source recipes that provide the given providers.
 
-When no arguments are passed, it tries to compute a build order of all the packages it can find.`,
+For example: autobuild query src:../packages rocm-clr pytorch
+	
+Be aware that the names specified are the "name" field of the recipe. If you
+want to query specific packages, use the provider syntax, such as "name(foo)".
+
+When no arguments are passed, it tries to compute a build order of all the
+packages it can find.`,
 		Run: runQuery,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
@@ -72,43 +78,55 @@ func runQuery(cmd *cobra.Command, args []string) {
 		queries = make([]string, len(state.Packages()))
 		i := 0
 		for _, pkg := range state.Packages() {
-			queries[i] = pkg.Name
+			queries[i] = pkg.Source
 			i++
 		}
 	} else {
 		queries = args[1:]
 	}
+	queries = utils.Uniq2(queries)
 
 	for _, query := range queries {
-		pkg, idx := st.GetPackage(state, query)
-		if idx < 0 {
-			waterlog.Fatalf("Unable to find package %s\n", query)
+		var ids []int
+
+		if ids = st.GetSourceIds(state, query); len(ids) == 0 {
+			if _, idx := st.GetPackage(state, query); idx != -1 {
+				ids = append(ids, idx)
+			}
 		}
 
-		if unresolved := pkg.Resolve(state.NameToSrcIdx(), state.Packages()); len(unresolved) > 0 {
-			waterlog.Warnf("Package %s has unresolved build dependencies, build graph may be incomplete:", pkg.Name)
-			for _, pkg := range unresolved {
-				waterlog.Printf(" %s", pkg)
+		for _, idx := range ids {
+			if idx < 0 {
+				waterlog.Fatalf("Unable to find package %s\n", query)
 			}
-			waterlog.Println()
-		}
 
-		qset[idx] = true
-		utils.BFSWithDepth(depGraph, idx, func(node int, depth int) bool {
-			if depth > forward {
-				return true
-			}
-			qset[node] = true
-			return false
-		})
-		if reverse > 0 {
-			utils.BFSWithDepth(revGraph, idx, func(node int, depth int) bool {
-				if depth > reverse {
+			// TODO: currently there's a panic/fatal log when building the graph if
+			// a dep is nonexistent, so we can ignore this for now.
+			// if unresolved := pkg.Resolve(state.NameToSrcIdx(), state.Packages()); len(unresolved) > 0 {
+			// 	waterlog.Warnf("Package %s has unresolved build dependencies, build graph may be incomplete:", pkg.Name)
+			// 	for _, pkg := range unresolved {
+			// 		waterlog.Printf(" %s", pkg)
+			// 	}
+			// 	waterlog.Println()
+			// }
+
+			qset[idx] = true
+			utils.BFSWithDepth(depGraph, idx, func(node int, depth int) bool {
+				if depth > forward {
 					return true
 				}
 				qset[node] = true
 				return false
 			})
+			if reverse > 0 {
+				utils.BFSWithDepth(revGraph, idx, func(node int, depth int) bool {
+					if depth > reverse {
+						return true
+					}
+					qset[node] = true
+					return false
+				})
+			}
 		}
 	}
 	// waterlog.Debugf("query: %q\n", queries)
@@ -172,7 +190,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 			cycleIdx++
 
 			for _, nodeIdx := range cycle {
-				waterlog.Printf(" %s", state.Packages()[nodeIdx].Name)
+				waterlog.Printf(" %s", state.Packages()[nodeIdx].ShowColor())
 			}
 			waterlog.Println()
 
@@ -199,9 +217,9 @@ func runQuery(cmd *cobra.Command, args []string) {
 
 			waterlog.Warnln("One of the dependency chains that led to this cycle:")
 			for _, pidx := range depPath {
-				waterlog.Printf("%s -> ", state.Packages()[pidx].Name)
+				waterlog.Printf("%s -> ", state.Packages()[pidx].ShowColor())
 			}
-			waterlog.Println(state.Packages()[depPath[0]].Name)
+			waterlog.Println(state.Packages()[depPath[0]].ShowColor())
 		}
 		// } else {
 		// 	waterlog.Errorf("Failed to get SCC: %s\n", err)
@@ -220,7 +238,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 			tier = utils.Filter(tier, func(i int) bool { return qset[i] })
 			waterlog.Goodf("Tier %d: ", tIdx+1)
 			for _, pkgIdx := range tier {
-				fmt.Printf("%s ", state.Packages()[pkgIdx].Name)
+				fmt.Printf("%s ", state.Packages()[pkgIdx].ShowColor())
 			}
 			fmt.Println()
 		}
@@ -228,7 +246,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 		waterlog.Good("Build order: ")
 		tier := utils.Filter(utils.Flatten(order), func(i int) bool { return qset[i] })
 		for _, orderIdx := range tier {
-			fmt.Printf("%s ", state.Packages()[orderIdx].Name)
+			fmt.Printf("%s ", state.Packages()[orderIdx].ShowColor())
 		}
 		fmt.Println()
 	}

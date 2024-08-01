@@ -12,12 +12,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DataDrake/waterlog"
+	_ "github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/config"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/GZGavinZhao/autobuild/ypkg"
 	"github.com/getsolus/libeopkg/index"
 	"github.com/getsolus/libeopkg/pspec"
+	"github.com/jwalton/gchalk"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,7 +30,8 @@ var (
 
 type Package struct {
 	Path      string
-	Name      string
+	Names     []string
+	Source    string
 	Version   string
 	Root      string
 	Release   int
@@ -41,38 +43,57 @@ type Package struct {
 	Synced    bool
 }
 
+// // Merge the info from `other` to itself. Prefer `other` if different.
+// func (p *Package) Merge(o Package) {
+// 	if len(o.Name) > 0 {
+// 		p.Name = o.Name
+// 	}
+// 	if len(o.Version) > 0 {
+// 		p.Version = o.Version
+// 	}
+// 	if len()
+// }
+
+func (p *Package) Show() string {
+	return fmt.Sprintf("%s{%s}", p.Source, strings.Join(p.Names, ", "))
+}
+
+func (p *Package) ShowColor() string {
+	return p.Source + gchalk.Gray(fmt.Sprintf("{%s}", strings.Join(p.Names, ", ")))
+}
+
 func (p *Package) Resolve(nameToSrcIdx map[string]int, pkgs []Package) (res []string) {
-	if !p.Resolved {
-		p.Resolved = true
-
-		for idx, dep := range p.BuildDeps {
-			srcIdx, ok := nameToSrcIdx[dep]
-
-			if !ok {
-				p.Resolved = false
-				res = append(res, dep)
-			} else {
-				p.BuildDeps[idx] = pkgs[srcIdx].Name
-			}
-		}
-
-		slices.Sort(p.BuildDeps)
-		p.BuildDeps = utils.Uniq(p.BuildDeps)
-
-		ignoreRegexes := []regexp.Regexp{}
-		for _, ignore := range p.Ignores {
-			ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
-		}
-		p.BuildDeps = utils.Filter(p.BuildDeps, func(dep string) bool {
-			for _, regex := range ignoreRegexes {
-				if regex.FindString(dep) == dep {
-					waterlog.Debugf("Package.Resolve: Dropping builddep %s from %s due to ignore regex %s\n", dep, p.Name, regex.String())
-					return false
-				}
-			}
-			return true
-		})
-	}
+	// if !p.Resolved {
+	// 	p.Resolved = true
+	//
+	// 	for idx, dep := range p.BuildDeps {
+	// 		srcIdx, ok := nameToSrcIdx[dep]
+	//
+	// 		if !ok {
+	// 			p.Resolved = false
+	// 			res = append(res, dep)
+	// 		} else {
+	// 			p.BuildDeps[idx] = pkgs[srcIdx].Name
+	// 		}
+	// 	}
+	//
+	// 	slices.Sort(p.BuildDeps)
+	// 	p.BuildDeps = utils.Uniq(p.BuildDeps)
+	//
+	// 	ignoreRegexes := []regexp.Regexp{}
+	// 	for _, ignore := range p.Ignores {
+	// 		ignoreRegexes = append(ignoreRegexes, *regexp.MustCompile(ignore))
+	// 	}
+	// 	p.BuildDeps = utils.Filter(p.BuildDeps, func(dep string) bool {
+	// 		for _, regex := range ignoreRegexes {
+	// 			if regex.FindString(dep) == dep {
+	// 				waterlog.Debugf("Package.Resolve: Dropping builddep %s from %s due to ignore regex %s\n", dep, p.Name, regex.String())
+	// 				return false
+	// 			}
+	// 		}
+	// 		return true
+	// 	})
+	// }
 
 	return
 }
@@ -80,7 +101,7 @@ func (p *Package) Resolve(nameToSrcIdx map[string]int, pkgs []Package) (res []st
 // ParsePackage parses a source package that is within the given `dir`
 // directory. In other words, a `package.yml` file must be located at
 // `dir/package.yml`.
-func ParsePackage(dir string) (pkg Package, err error) {
+func ParsePackage(dir string) (pkgs []Package, err error) {
 	// Check if the given directory contains a package definition
 	pkgFile := filepath.Join(dir, "package.yml")
 	pspecFile := filepath.Join(dir, "pspec_x86_64.xml")
@@ -92,14 +113,15 @@ func ParsePackage(dir string) (pkg Package, err error) {
 		return
 	}
 
-	pkg = Package{
+	pkgs = append(pkgs, Package{
 		Path:      dir,
-		Name:      ypkgYml.Name,
+		Names:     []string{ypkgYml.Name},
 		Version:   ypkgYml.Version,
 		Release:   ypkgYml.Release,
 		BuildDeps: ypkgYml.BuildDeps,
-		Synced:    false,
-	}
+		Synced:    false},
+	)
+	pkg := &pkgs[0]
 
 	// Combine the rundeps of all subpackages into a single list
 	// Note to self: this website can inspect yaml ast nodes:
@@ -205,7 +227,7 @@ func getPcProvides(pkg *pspec.Package) []string {
 }
 
 func ParseIndexPackage(ipkg index.Package) (pkg Package, err error) {
-	pkg.Name = ipkg.Source.Name
+	pkg.Names = append(pkg.Names, ipkg.Source.Name)
 
 	latest := ipkg.History[0]
 	pkg.Release = latest.Release

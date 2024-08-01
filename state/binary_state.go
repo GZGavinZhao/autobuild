@@ -10,14 +10,15 @@ import (
 	"net/http"
 
 	"github.com/GZGavinZhao/autobuild/common"
-	"github.com/yourbasic/graph"
 	"github.com/getsolus/libeopkg/index"
 	"github.com/ulikunitz/xz"
+	"github.com/yourbasic/graph"
 )
 
 type BinaryState struct {
 	packages     []common.Package
-	nameToSrcIdx map[string]int
+	pvdToPkgIdx map[string]int
+	srcToPkgIds map[string][]int
 	depGraph     *graph.Immutable
 	isGit        bool
 }
@@ -26,8 +27,12 @@ func (s *BinaryState) Packages() []common.Package {
 	return s.packages
 }
 
-func (s *BinaryState) NameToSrcIdx() map[string]int {
-	return s.nameToSrcIdx
+func (s *BinaryState) SrcToPkgIds() map[string][]int {
+	return s.srcToPkgIds
+}
+
+func (s *BinaryState) PvdToPkgIdx() map[string]int {
+	return s.pvdToPkgIdx
 }
 
 func (s *BinaryState) DepGraph() *graph.Immutable {
@@ -39,27 +44,29 @@ func (s *BinaryState) BuildGraph() {
 }
 
 func LoadEopkgIndex(i *index.Index) (state *BinaryState, err error) {
-	state = &BinaryState{}
-	state.nameToSrcIdx = make(map[string]int)
-	// Iterate through the eopkg index and check if there are version/release
-	// discrepancies between the source repository and the binary index.
-	for _, ipkg := range i.Packages {
-		if _, ok := state.nameToSrcIdx[ipkg.Source.Name]; ok {
-			continue
-		}
+	panic("Not Implmeneted!")
 
-		var pkg common.Package
-		pkg, err = common.ParseIndexPackage(ipkg)
-		if err != nil {
-			return
-		}
+	// state = &BinaryState{}
+	// state.nameToSrcIdx = make(map[string]int)
+	// // Iterate through the eopkg index and check if there are version/release
+	// // discrepancies between the source repository and the binary index.
+	// for _, ipkg := range i.Packages {
+	// 	if _, ok := state.nameToSrcIdx[ipkg.Source.Name]; ok {
+	// 		continue
+	// 	}
 
-		// TODO: is this O(N^2)? Check how `len` is calculated.
-		state.nameToSrcIdx[pkg.Name] = len(state.packages)
-		state.packages = append(state.packages, pkg)
-	}
+	// 	var pkg common.Package
+	// 	pkg, err = common.ParseIndexPackage(ipkg)
+	// 	if err != nil {
+	// 		return
+	// 	}
 
-	return
+	// 	// TODO: is this O(N^2)? Check how `len` is calculated.
+	// 	state.nameToSrcIdx[pkg.Name] = len(state.packages)
+	// 	state.packages = append(state.packages, pkg)
+	// }
+	//
+	// return
 }
 
 func LoadBinary(path string) (state *BinaryState, err error) {

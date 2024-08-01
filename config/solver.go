@@ -5,5 +5,7 @@
 package config
 
 type SolverConfig struct {
-	Ignore []string `yaml:"ignore"`
+	Ignore []string            `yaml:"ignore"`
+	Split  []string            `yaml:"split"`
+	Move   map[string][]string `yaml:"move"`
 }

@@ -20,6 +20,8 @@ require (
 )
 
 require (
+	github.com/jwalton/gchalk v1.3.0 // indirect
+	github.com/jwalton/go-supportscolor v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
