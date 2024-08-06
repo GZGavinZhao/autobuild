@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"github.com/DataDrake/waterlog"
+	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/spf13/cobra"
 )
 
@@ -21,33 +23,33 @@ func init() {
 }
 
 func runDiff(cmd *cobra.Command, args []string) {
-	// oldTPath := args[0]
-	// newTPath := args[1]
+	oldTPath := args[0]
+	newTPath := args[1]
 
-	// var oldState, newState state.State
+	var oldState, newState state.State
 
-	// oldState, err := state.LoadState(oldTPath)
-	// if err != nil {
-	// 	waterlog.Fatalf("Failed to load old state %s: %s\n", oldTPath, err)
-	// }
-	// waterlog.Goodln("Successfully parsed old state!")
+	oldState, err := state.LoadState(oldTPath)
+	if err != nil {
+		waterlog.Fatalf("Failed to load old state %s: %s\n", oldTPath, err)
+	}
+	waterlog.Goodln("Successfully parsed old state!")
 
-	// newState, err = state.LoadState(newTPath)
-	// if err != nil {
-	// 	waterlog.Fatalf("Failed to load new state %s: %s\n", newTPath, err)
-	// }
-	// waterlog.Goodln("Successfully parsed new state!")
+	newState, err = state.LoadState(newTPath)
+	if err != nil {
+		waterlog.Fatalf("Failed to load new state %s: %s\n", newTPath, err)
+	}
+	waterlog.Goodln("Successfully parsed new state!")
 
-	// waterlog.Infoln("Diffing...")
-	// for _, diff := range state.Changed(&oldState, &newState) {
-	// 	name := newState.Packages()[diff.Idx].Name
+	waterlog.Infoln("Diffing...")
+	for _, diff := range state.Changed(&oldState, &newState) {
+		name := newState.Packages()[diff.Idx].Source
 
-	// 	if diff.OldRelNum == 0 {
-	// 		waterlog.Infof("New: %s: %s-%d\n", name, diff.Ver, diff.RelNum)
-	// 	} else if diff.Ver != diff.OldVer {
-	// 		waterlog.Infof("Update: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
-	// 	} else if diff.RelNum > diff.OldRelNum {
-	// 		waterlog.Infof("Rebuild/Change: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
-	// 	}
-	// }
+		if diff.OldRelNum == 0 {
+			waterlog.Infof("New: %s: %s-%d\n", name, diff.Ver, diff.RelNum)
+		} else if diff.Ver != diff.OldVer {
+			waterlog.Infof("Update: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+		} else if diff.RelNum > diff.OldRelNum {
+			waterlog.Infof("Rebuild/Change: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+		}
+	}
 }

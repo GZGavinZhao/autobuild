@@ -6,10 +6,13 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
+	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/yourbasic/graph"
 )
 
@@ -27,7 +30,7 @@ type State interface {
 	// PackageExists(string) bool
 }
 
-func GetSourceIds(s State, name string) ([]int) {
+func GetSourceIds(s State, name string) []int {
 	return s.SrcToPkgIds()[name]
 }
 
@@ -78,14 +81,16 @@ func LoadState(tpath string) (state State, err error) {
 }
 
 func Changed(old *State, cur *State) (res []Diff) {
-	for idx, pkg := range (*cur).Packages() {
+	for src, ids := range (*cur).SrcToPkgIds() {
+		idx := ids[0]
+		pkg := (*cur).Packages()[idx]
 		// WARNING:
 		// we assume that packages that correspond to the same source recipe
 		// always have the same release number and version.
 		//
 		// In general, this should always hold, but we should probably check it
 		// somewhere.
-		oldIds, found := (*old).SrcToPkgIds()[pkg.Source]
+		oldIds, found := (*old).SrcToPkgIds()[src]
 
 		if !found {
 			res = append(res, Diff{
@@ -109,5 +114,89 @@ func Changed(old *State, cur *State) (res []Diff) {
 		}
 	}
 
+	return
+}
+
+func QueryOrder(state State, choose func(int) bool) (res [][]common.Package, err error) {
+	depGraph := state.DepGraph()
+	if depGraph == nil {
+		waterlog.Fatalf("Failed to obtain adjacency map for dependency graph: %s\n", err)
+	}
+
+	lifted := graph.Sort(utils.LiftGraph(depGraph, choose))
+	if err != nil {
+		err = fmt.Errorf("Failed to lift final graph from requested nodes: %s", err)
+		return
+	}
+	waterlog.Goodln("Successfully built dependency graph!")
+
+	waterlog.Debugf("depgraph hash: %s\n", utils.GraphHash(depGraph))
+	waterlog.Debugf("depgraph stats: %+v\n", graph.Check(depGraph))
+	waterlog.Debugf("liftgraph hash: %s\n", utils.GraphHash(lifted))
+	waterlog.Debugf("liftgraph stats: %+v\n", graph.Check(lifted))
+
+	order, ok := utils.TieredTopSort(lifted)
+	if !ok {
+		// Try to dump cycles if topological sort failed.
+		// if cycles, err := graph.StrongComponents(lifted); err == nil {
+		cycles := graph.StrongComponents(lifted)
+		cycles = utils.Filter(cycles, func(cycle []int) bool { return len(cycle) > 1 })
+		if len(cycles) == 0 {
+			err = errors.New("Cannot topological sort but no cycles detected?!?")
+			return
+		}
+
+		cyclesErr := QueryHasCyclesErr{}
+		for _, cycle := range cycles {
+			if len(cycle) <= 1 {
+				continue
+			}
+
+			thisCycle := Cycle{}
+
+			thisCycle.Members = make([]common.Package, len(cycle))
+			for idx, nodeIdx := range cycle {
+				thisCycle.Members[idx] = state.Packages()[nodeIdx]
+			}
+
+			// the order in `cycle` may not be deterministic, so we have to
+			// deterministically choose a starting node by ourselves
+			startIdx := 0
+			for idx, nodeIdx := range cycle {
+				if nodeIdx < cycle[startIdx] {
+					startIdx = idx
+				}
+			}
+			nextIdx := (startIdx + 1) % len(cycle)
+
+			// We always want the longer shortest path
+			depPath := utils.LongerShortestPath(depGraph, cycle[startIdx], cycle[nextIdx])
+			if len(depPath) < 2 {
+				err = fmt.Errorf("Failed to calculate dependency path that led to this cycle, got: %q", depPath)
+				return
+			}
+
+			thisCycle.Chain = make([]common.Package, len(depPath))
+			for idx, nodeIdx := range depPath {
+				thisCycle.Chain[idx] = state.Packages()[nodeIdx]
+			}
+			cyclesErr.Cycles = append(cyclesErr.Cycles, thisCycle)
+		}
+
+		err = cyclesErr
+		return
+	}
+
+	// Note that we still need an extra filter on the tier output,
+	// because due to the limitation of the graph API, the lifted graph
+	// includes nodes [0, n), not just the nodes in `query`/`qset`, so they will
+	// appear in the topological sort output.
+	for tIdx, tier := range order {
+		res = append(res, make([]common.Package, len(tier)))
+		tier = utils.Filter(tier, choose)
+		for idx, pkgIdx := range tier {
+			res[tIdx][idx] = state.Packages()[pkgIdx]
+		}
+	}
 	return
 }

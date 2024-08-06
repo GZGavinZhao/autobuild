@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/DataDrake/waterlog"
+	"github.com/GZGavinZhao/autobuild/common"
 	st "github.com/GZGavinZhao/autobuild/state"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/spf13/cobra"
@@ -55,36 +56,15 @@ func init() {
 	cmdQuery.Flags().BoolVar(&detailed, "detailed", true, "report more detailed dependency chains during cycles output")
 }
 
-func runQuery(cmd *cobra.Command, args []string) {
-	tpath := args[0]
-
-	state, err := st.LoadState(tpath)
-	if err != nil {
-		waterlog.Fatalf("Failed to parse state: %s\n", err)
-	}
-	waterlog.Goodln("Successfully parsed state!")
-
+func execQuery(state st.State, queries []string) (res [][]common.Package, err error) {
 	depGraph := state.DepGraph()
 	if depGraph == nil {
-		waterlog.Fatalf("Failed to obtain adjacency map for dependency graph: %s\n", err)
+		err = errors.New("Adjacency map for dependency graph is nil")
+		return
 	}
-	qset := map[int]bool{}
 
 	revGraph := graph.Transpose(depGraph)
-
-	var queries []string
-	if len(args) < 2 {
-		waterlog.Infoln("No packages are provided, will try to query all packages")
-		queries = make([]string, len(state.Packages()))
-		i := 0
-		for _, pkg := range state.Packages() {
-			queries[i] = pkg.Source
-			i++
-		}
-	} else {
-		queries = args[1:]
-	}
-	queries = utils.Uniq2(queries)
+	qset := map[int]bool{}
 
 	for _, query := range queries {
 		var ids []int
@@ -97,7 +77,8 @@ func runQuery(cmd *cobra.Command, args []string) {
 
 		for _, idx := range ids {
 			if idx < 0 {
-				waterlog.Fatalf("Unable to find package %s\n", query)
+				err = fmt.Errorf("Unable to find package %s", query)
+				return
 			}
 
 			// TODO: currently there's a panic/fatal log when building the graph if
@@ -133,120 +114,64 @@ func runQuery(cmd *cobra.Command, args []string) {
 	// waterlog.Debugf("qset: %v\n", qset)
 	waterlog.Goodln("Found all requested packages in state!")
 
-	lifted := graph.Sort(utils.LiftGraph(depGraph, func(i int) bool { return qset[i] }))
+	return st.QueryOrder(state, func(i int) bool { return qset[i] })
+}
+
+func runQuery(cmd *cobra.Command, args []string) {
+	tpath := args[0]
+
+	state, err := st.LoadState(tpath)
 	if err != nil {
-		waterlog.Fatalf("Failed to lift final graph from requested nodes: %s\n", err)
+		waterlog.Fatalf("Failed to parse state: %s\n", err)
 	}
-	waterlog.Goodln("Successfully built dependency graph!")
+	waterlog.Goodln("Successfully parsed state!")
 
-	waterlog.Debugf("depgraph hash: %s\n", utils.GraphHash(depGraph))
-	waterlog.Debugf("depgraph stats: %+v\n", graph.Check(depGraph))
-	waterlog.Debugf("liftgraph hash: %s\n", utils.GraphHash(lifted))
-	waterlog.Debugf("liftgraph stats: %+v\n", graph.Check(lifted))
-
-	// {
-	// 	bruh, _ := lifted.AdjacencyMap()
-	// 	for node, edges := range bruh {
-	// 		if len(edges) == 0 {
-	// 			continue
-	// 		}
-
-	// 		fmt.Printf("%d: ", node)
-	// 		for adj := range edges {
-	// 			fmt.Printf("%d ", adj)
-	// 		}
-	// 		fmt.Println()
-	// 	}
-	// 	// fmt.Printf("%s : %q\n", err, bruh)
-	// }
-	// if len(dotPath) > 0 {
-	// 	liftedDot, _ := os.Create("lifted.gv")
-	// 	if err = draw.DOT(lifted, liftedDot); err != nil {
-	// 		waterlog.Fatalf("Failed to output lifted.gv: %s\n", err)
-	// 	}
-
-	// 	depDot, _ := os.Create("dep.gv")
-	// 	if err = draw.DOT(*depGraph, depDot); err != nil {
-	// 		waterlog.Fatalf("Failed to output dep.gv: %s\n", err)
-	// 	}
-	// }
-
-	order, ok := utils.TieredTopSort(lifted)
-	if !ok {
-		// Try to dump cycles if topological sort failed.
-		// if cycles, err := graph.StrongComponents(lifted); err == nil {
-		cycles := graph.StrongComponents(lifted)
-		cycles = utils.Filter(cycles, func(cycle []int) bool { return len(cycle) > 1 })
-		if len(cycles) == 0 {
-			waterlog.Fatalln("No cycles detected ?!?")
+	var queries []string
+	if len(args) < 2 {
+		waterlog.Infoln("No packages are provided, will try to query all packages")
+		queries = make([]string, len(state.Packages()))
+		for i, pkg := range state.Packages() {
+			queries[i] = pkg.Source
 		}
+	} else {
+		queries = args[1:]
+	}
+	queries = utils.Uniq2(queries)
 
-		for cycleIdx, cycle := range cycles {
-			if len(cycle) <= 1 {
-				continue
-			}
-
-			waterlog.Warnf("Cycle %d:", cycleIdx+1)
-			cycleIdx++
-
-			for _, nodeIdx := range cycle {
-				waterlog.Printf(" %s", state.Packages()[nodeIdx].ShowColor())
-			}
-			waterlog.Println()
-
-			// the order in `cycle` may not be deterministic, so we have to
-			// deterministically choose a starting node by ourselves
-			startIdx := 0
-			for idx, nodeIdx := range cycle {
-				if nodeIdx < cycle[startIdx] {
-					startIdx = idx
+	order, err := execQuery(state, queries)
+	if err != nil {
+		if qerr, ok := err.(st.QueryHasCyclesErr); ok {
+			waterlog.Errorln("Graph contains cycles:")
+			for cycleIdx, cycle := range qerr.Cycles {
+				waterlog.Errorf("Cycle %d: ", cycleIdx+1)
+				for _, pkg := range cycle.Members {
+					fmt.Printf("%s ", pkg.ShowColor())
 				}
-			}
-			nextIdx := (startIdx + 1) % len(cycle)
+				fmt.Println()
 
-			// We always want the longer shortest path
-			var depPath []int
-			if detailed {
-				depPath = utils.LongerShortestPath(depGraph, cycle[startIdx], cycle[nextIdx])
-			} else {
-				depPath = utils.LongerShortestPath(lifted, cycle[startIdx], cycle[nextIdx])
+				waterlog.Warnf("One of the dependency chains that led to this cycle: ")
+				for _, pkg := range cycle.Chain {
+					fmt.Printf("%s -> ", pkg.ShowColor())
+				}
+				fmt.Println(cycle.Chain[0].ShowColor())
 			}
-			if len(depPath) < 2 {
-				waterlog.Fatalf("Failed to calculate dependency path that led to this cycle, got: %q\n", depPath)
-			}
-
-			waterlog.Warnln("One of the dependency chains that led to this cycle:")
-			for _, pidx := range depPath {
-				waterlog.Printf("%s -> ", state.Packages()[pidx].ShowColor())
-			}
-			waterlog.Println(state.Packages()[depPath[0]].ShowColor())
+		} else {
+			waterlog.Fatalf("Failed to query order: %s\n", err)
 		}
-		// } else {
-		// 	waterlog.Errorf("Failed to get SCC: %s\n", err)
-		// }
-
-		waterlog.Fatalln("Failed to get topological sort order: lifted graph has cycles!")
 	}
 
-	// Note that we still need an extra filter on the tier output,
-	// because due to the limitation of the graph API, the lifted graph
-	// includes nodes [0, n), not just the nodes in `query`/`qset`, so they will
-	// appear in the topological sort output.
-	if tiers {
-		waterlog.Goodln("Build order:")
-		for tIdx, tier := range order {
-			tier = utils.Filter(tier, func(i int) bool { return qset[i] })
-			waterlog.Goodf("Tier %d: ", tIdx+1)
-			for _, pkgIdx := range tier {
-				fmt.Printf("%s ", state.Packages()[pkgIdx].ShowColor())
+	if detailed {
+		for tierIdx, tier := range order {
+			waterlog.Goodf("Tier %d: ", tierIdx+1)
+			for _, pkg := range tier {
+				fmt.Printf("%s ", pkg.ShowColor())
 			}
 			fmt.Println()
 		}
 	} else {
 		waterlog.Good("Build order: ")
-		tier := utils.Filter(utils.Flatten(order), func(i int) bool { return qset[i] })
-		for _, orderIdx := range tier {
-			fmt.Printf("%s ", state.Packages()[orderIdx].ShowColor())
+		for _, pkg := range utils.Flatten(order) {
+			fmt.Printf("%s ", pkg.ShowColor())
 		}
 		fmt.Println()
 	}
