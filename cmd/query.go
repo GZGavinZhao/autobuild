@@ -160,7 +160,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if detailed {
+	if tiers {
 		for tierIdx, tier := range order {
 			waterlog.Goodf("Tier %d: ", tierIdx+1)
 			for _, pkg := range tier {
