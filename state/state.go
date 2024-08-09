@@ -192,8 +192,8 @@ func QueryOrder(state State, choose func(int) bool) (res [][]common.Package, err
 	// includes nodes [0, n), not just the nodes in `query`/`qset`, so they will
 	// appear in the topological sort output.
 	for tIdx, tier := range order {
-		res = append(res, make([]common.Package, len(tier)))
 		tier = utils.Filter(tier, choose)
+		res = append(res, make([]common.Package, len(tier)))
 		for idx, pkgIdx := range tier {
 			res[tIdx][idx] = state.Packages()[pkgIdx]
 		}
