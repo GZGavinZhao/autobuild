@@ -54,12 +54,20 @@ type Package struct {
 // 	if len()
 // }
 
-func (p *Package) Show() string {
-	return fmt.Sprintf("%s{%s}", p.Source, strings.Join(p.Names, ", "))
-}
-
-func (p *Package) ShowColor() string {
-	return p.Source + gchalk.Gray(fmt.Sprintf("{%s}", strings.Join(p.Names, ", ")))
+// Show is the toString method for a package.
+//
+// When `sub` is true, show the subpackages that this package (node) represents.
+//
+// When `color` is true, show the subpackages in gray color for easier viewing.
+// Obviously this has no effects when `sub` is false.
+func (p *Package) Show(sub bool, color bool) string {
+	if !sub {
+		return p.Source
+	} else if color {
+		return p.Source + gchalk.Gray(fmt.Sprintf("{%s}", strings.Join(p.Names, ", ")))
+	} else {
+		return fmt.Sprintf("%s{%s}", p.Source, strings.Join(p.Names, ", "))
+	}
 }
 
 func (p *Package) Resolve(nameToSrcIdx map[string]int, pkgs []Package) (res []string) {

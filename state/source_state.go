@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	badPackages  = [...]string{"haskell-http-client-tls"}
+	badPackages = [...]string{"haskell-http-client-tls"}
 )
 
 type SourceState struct {
@@ -60,7 +60,7 @@ func (s *SourceState) buildGraph() {
 		for _, dep := range pkg.BuildDeps {
 			depIdx, depFound := s.pvdToPkgIdx[dep]
 			if !depFound {
-				waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Show())
+				waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Show(true, false))
 			} else if pkgIdx != depIdx {
 				g.Add(depIdx, pkgIdx)
 			}
@@ -169,7 +169,7 @@ func LoadSource(path string) (state *SourceState, err error) {
 		// }
 		for _, pvd := range pkg.Provides {
 			if pidx, ok := state.pvdToPkgIdx[pvd]; ok && pidx != idx {
-				waterlog.Errorf("Duplicate provider for %s from %s, currently %s\n", pvd, pkg.Show(), state.packages[pidx].Show())
+				waterlog.Errorf("Duplicate provider for %s from %s, currently %s\n", pvd, pkg.Show(true, false), state.packages[pidx].Show(true, false))
 			}
 			state.pvdToPkgIdx[pvd] = idx
 		}

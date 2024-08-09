@@ -22,6 +22,7 @@ var (
 	forward  int
 	reverse  int
 	detailed bool
+	showSub  bool
 
 	cmdQuery = &cobra.Command{
 		Use:   "query [src|bin|repo:path] [names/providers]",
@@ -54,6 +55,7 @@ func init() {
 	// Maybe we should output packages that are not parts of the query but are
 	// on the dependency chain with a different color?
 	cmdQuery.Flags().BoolVar(&detailed, "detailed", true, "report more detailed dependency chains during cycles output")
+	cmdQuery.Flags().BoolVar(&showSub, "show-sub", false, "show the subpackages that a node represents instead of just the recipe name")
 }
 
 func execQuery(state st.State, queries []string) (res [][]common.Package, err error) {
@@ -145,15 +147,15 @@ func runQuery(cmd *cobra.Command, args []string) {
 			for cycleIdx, cycle := range qerr.Cycles {
 				waterlog.Errorf("Cycle %d: ", cycleIdx+1)
 				for _, pkg := range cycle.Members {
-					fmt.Printf("%s ", pkg.ShowColor())
+					fmt.Printf("%s ", pkg.Show(showSub, true))
 				}
 				fmt.Println()
 
 				waterlog.Warnf("One of the dependency chains that led to this cycle: ")
 				for _, pkg := range cycle.Chain {
-					fmt.Printf("%s -> ", pkg.ShowColor())
+					fmt.Printf("%s -> ", pkg.Show(showSub, true))
 				}
-				fmt.Println(cycle.Chain[0].ShowColor())
+				fmt.Println(cycle.Chain[0].Show(showSub, true))
 			}
 		} else {
 			waterlog.Fatalf("Failed to query order: %s\n", err)
@@ -164,14 +166,14 @@ func runQuery(cmd *cobra.Command, args []string) {
 		for tierIdx, tier := range order {
 			waterlog.Goodf("Tier %d: ", tierIdx+1)
 			for _, pkg := range tier {
-				fmt.Printf("%s ", pkg.ShowColor())
+				fmt.Printf("%s ", pkg.Show(showSub, true))
 			}
 			fmt.Println()
 		}
 	} else {
 		waterlog.Good("Build order: ")
 		for _, pkg := range utils.Flatten(order) {
-			fmt.Printf("%s ", pkg.ShowColor())
+			fmt.Printf("%s ", pkg.Show(showSub, true))
 		}
 		fmt.Println()
 	}
