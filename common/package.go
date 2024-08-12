@@ -123,6 +123,7 @@ func ParsePackage(dir string) (pkgs []Package, err error) {
 
 	pkgs = append(pkgs, Package{
 		Path:      dir,
+		Source:    ypkgYml.Name,
 		Names:     []string{ypkgYml.Name},
 		Version:   ypkgYml.Version,
 		Release:   ypkgYml.Release,
@@ -235,11 +236,17 @@ func getPcProvides(pkg *pspec.Package) []string {
 }
 
 func ParseIndexPackage(ipkg index.Package) (pkg Package, err error) {
-	pkg.Names = append(pkg.Names, ipkg.Source.Name)
+	pkg.Source = ipkg.Source.Name
+	pkg.Names = append(pkg.Names, ipkg.Name)
+	pkg.Provides = append(pkg.Provides, fmt.Sprintf("name(%s)", ipkg.Name))
 
 	latest := ipkg.History[0]
 	pkg.Release = latest.Release
 	pkg.Version = latest.Version
+
+	// TODO: we intentionally don't add anything besides version information,
+	// because we don't need to. Right now, we only use binary index for diffing
+	// against another source/binary index to see what packages have changed.
 
 	return
 }

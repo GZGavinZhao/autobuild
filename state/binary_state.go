@@ -16,11 +16,11 @@ import (
 )
 
 type BinaryState struct {
-	packages     []common.Package
+	packages    []common.Package
 	pvdToPkgIdx map[string]int
 	srcToPkgIds map[string][]int
-	depGraph     *graph.Immutable
-	isGit        bool
+	depGraph    *graph.Immutable
+	isGit       bool
 }
 
 func (s *BinaryState) Packages() []common.Package {
@@ -44,29 +44,34 @@ func (s *BinaryState) BuildGraph() {
 }
 
 func LoadEopkgIndex(i *index.Index) (state *BinaryState, err error) {
-	panic("Not Implmeneted!")
+	// panic("Not Implmeneted!")
 
-	// state = &BinaryState{}
-	// state.nameToSrcIdx = make(map[string]int)
-	// // Iterate through the eopkg index and check if there are version/release
-	// // discrepancies between the source repository and the binary index.
-	// for _, ipkg := range i.Packages {
-	// 	if _, ok := state.nameToSrcIdx[ipkg.Source.Name]; ok {
-	// 		continue
-	// 	}
+	state = &BinaryState{}
+	state.packages = make([]common.Package, len(i.Packages))
+	state.pvdToPkgIdx = make(map[string]int)
+	state.srcToPkgIds = make(map[string][]int)
 
-	// 	var pkg common.Package
-	// 	pkg, err = common.ParseIndexPackage(ipkg)
-	// 	if err != nil {
-	// 		return
-	// 	}
+	// Iterate through the eopkg index and check if there are version/release
+	// discrepancies between the source repository and the binary index.
+	for idx, ipkg := range i.Packages {
+		pvd := fmt.Sprintf("name(%s)", ipkg.Name)
+		if ext, ok := state.pvdToPkgIdx[pvd]; ok {
+			err = fmt.Errorf("Duplicate provider %s, %s provides but already provided by %s", pvd, ipkg.Name, state.packages[ext].Show(true, false))
+			return
+		}
 
-	// 	// TODO: is this O(N^2)? Check how `len` is calculated.
-	// 	state.nameToSrcIdx[pkg.Name] = len(state.packages)
-	// 	state.packages = append(state.packages, pkg)
-	// }
-	//
-	// return
+		var pkg common.Package
+		pkg, err = common.ParseIndexPackage(ipkg)
+		if err != nil {
+			return
+		}
+
+		state.pvdToPkgIdx[pvd] = idx
+		state.srcToPkgIds[ipkg.Source.Name] = append(state.srcToPkgIds[ipkg.Source.Name], idx)
+		state.packages[idx] = pkg
+	}
+
+	return
 }
 
 func LoadBinary(path string) (state *BinaryState, err error) {

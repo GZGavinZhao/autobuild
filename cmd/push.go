@@ -5,6 +5,9 @@
 package cmd
 
 import (
+	"github.com/DataDrake/waterlog"
+	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/spf13/cobra"
 )
 
@@ -32,72 +35,72 @@ func init() {
 }
 
 func runPush(cmd *cobra.Command, args []string) {
-	//oldTPath := args[0]
-	//newTPath := args[1]
+	oldTPath := args[0]
+	newTPath := args[1]
 
-	//var oldState, newState state.State
+	var oldState, newState state.State
 
-	//oldState, err := state.LoadState(oldTPath)
-	//if err != nil {
-	//	waterlog.Fatalf("Failed to load old state %s: %s\n", oldTPath, err)
-	//}
-	//waterlog.Goodln("Successfully parsed old state!")
+	oldState, err := state.LoadState(oldTPath)
+	if err != nil {
+		waterlog.Fatalf("Failed to load old state %s: %s\n", oldTPath, err)
+	}
+	waterlog.Goodln("Successfully parsed old state!")
 
-	//newState, err = state.LoadState(newTPath)
-	//if err != nil {
-	//	waterlog.Fatalf("Failed to load new state %s: %s\n", newTPath, err)
-	//}
-	//waterlog.Goodln("Successfully parsed new state!")
+	newState, err = state.LoadState(newTPath)
+	if err != nil {
+		waterlog.Fatalf("Failed to load new state %s: %s\n", newTPath, err)
+	}
+	waterlog.Goodln("Successfully parsed new state!")
 
-	//bumped := []common.Package{}
-	//bset := make(map[int]bool)
-	//outdated := []common.Package{}
-	//bad := []common.Package{}
+	bumped := []common.Package{}
+	bset := make(map[int]bool)
+	outdated := []common.Package{}
+	bad := []common.Package{}
 
-	//waterlog.Infoln("Diffing...")
-	//var changes []state.Diff
-	//if len(args) > 2 {
-	//	for _, name := range args[2:] {
-	//		oldPkg, oldIdx := state.GetPackage(oldState, name)
-	//		if oldIdx == -1 {
-	//			waterlog.Fatalf("Cannot find %s in old state!\n", name)
-	//		}
+	waterlog.Infoln("Diffing...")
+	var changes []state.Diff
+	if len(args) > 2 {
+		for _, name := range args[2:] {
+			oldPkg, oldIdx := state.GetPackage(oldState, name)
+			if oldIdx == -1 {
+				waterlog.Fatalf("Cannot find %s in old state!\n", name)
+			}
 
-	//		newPkg, newIdx := state.GetPackage(newState, name)
-	//		if newIdx == -1 {
-	//			waterlog.Fatalf("Cannot find %s in old state!\n", name)
-	//		}
+			newPkg, newIdx := state.GetPackage(newState, name)
+			if newIdx == -1 {
+				waterlog.Fatalf("Cannot find %s in old state!\n", name)
+			}
 
-	//		changes = append(changes, state.Diff{
-	//			Idx:       newIdx,
-	//			OldIdx:    oldIdx,
-	//			RelNum:    newPkg.Release,
-	//			OldRelNum: oldPkg.Release,
-	//			Ver:       newPkg.Version,
-	//			OldVer:    oldPkg.Version,
-	//		})
-	//	}
-	//} else {
-	//	changes = state.Changed(&oldState, &newState)
-	//}
+			changes = append(changes, state.Diff{
+				Idx:       newIdx,
+				OldIdx:    oldIdx,
+				RelNum:    newPkg.Release,
+				OldRelNum: oldPkg.Release,
+				Ver:       newPkg.Version,
+				OldVer:    oldPkg.Version,
+			})
+		}
+	} else {
+		changes = state.Changed(&oldState, &newState)
+	}
 
-	//for _, diff := range changes {
-	//	pkg := newState.Packages()[diff.Idx]
-	//	if diff.IsSame() {
-	//		waterlog.Warnf("Package %s hasn't changed, skipping...\n", pkg.Name)
-	//	} else if diff.IsNewRel() {
-	//		bumped = append(bumped, pkg)
-	//		bset[diff.Idx] = true
-	//	} else if diff.IsSameRel() && !diff.IsSame() {
-	//		bad = append(bad, pkg)
-	//	} else if diff.IsDowngrade() {
-	//		outdated = append(outdated, pkg)
-	//	}
-	//}
+	for _, diff := range changes {
+		pkg := newState.Packages()[diff.Idx]
+		if diff.IsSame() {
+			waterlog.Warnf("Package %s hasn't changed, skipping...\n", pkg.Source)
+		} else if diff.IsNewRel() {
+			bumped = append(bumped, pkg)
+			bset[diff.Idx] = true
+		} else if diff.IsSameRel() && !diff.IsSame() {
+			bad = append(bad, pkg)
+		} else if diff.IsDowngrade() {
+			outdated = append(outdated, pkg)
+		}
+	}
 
-	//force, _ := cmd.Flags().GetBool("force")
-	//dryRun, _ := cmd.Flags().GetBool("dry-run")
-	//prePush, _ := cmd.Flags().GetBool("push")
+	// force, _ := cmd.Flags().GetBool("force")
+	// dryRun, _ := cmd.Flags().GetBool("dry-run")
+	// prePush, _ := cmd.Flags().GetBool("push")
 
 	//if len(bad) != 0 {
 	//	waterlog.Warnf("The following packages have the same release number but different version:")

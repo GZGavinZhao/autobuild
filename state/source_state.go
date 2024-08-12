@@ -60,7 +60,7 @@ func (s *SourceState) buildGraph() {
 		for _, dep := range pkg.BuildDeps {
 			depIdx, depFound := s.pvdToPkgIdx[dep]
 			if !depFound {
-				waterlog.Fatalf("Dependency %s of package %s is not found!\n", dep, pkg.Show(true, false))
+				waterlog.Warnf("Dependency %s of package %s is not found!\n", dep, pkg.Show(true, false))
 			} else if pkgIdx != depIdx {
 				g.Add(depIdx, pkgIdx)
 			}

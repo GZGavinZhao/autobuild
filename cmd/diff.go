@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	strictDiff bool
+
 	cmdDiff = &cobra.Command{
 		Use:   "diff <[src|bin|repo]:path-to-old> <[src|bin|repo]:path-to-new>",
 		Short: "Diff the packages between binary indices or sources or a mix of them",
@@ -20,6 +22,7 @@ var (
 )
 
 func init() {
+	cmdDiff.Flags().BoolVarP(&strictDiff, "strict", "s", false, "show and warn suspicious changes such as outdated packages or unbumped relnos")
 }
 
 func runDiff(cmd *cobra.Command, args []string) {
@@ -46,10 +49,16 @@ func runDiff(cmd *cobra.Command, args []string) {
 
 		if diff.OldRelNum == 0 {
 			waterlog.Infof("New: %s: %s-%d\n", name, diff.Ver, diff.RelNum)
-		} else if diff.Ver != diff.OldVer {
-			waterlog.Infof("Update: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
 		} else if diff.RelNum > diff.OldRelNum {
 			waterlog.Infof("Rebuild/Change: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+		} else if diff.RelNum < diff.OldRelNum {
+			if strictDiff {
+				waterlog.Warnf("Outdated: %s: %s-%d <- %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+			}
+		} else if diff.Ver != diff.OldVer {
+			if strictDiff {
+				waterlog.Warnf("Different version but same relno: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+			}
 		}
 	}
 }
