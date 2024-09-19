@@ -85,15 +85,14 @@ func ParseManifest(path string, abconfig config.AutobuildConfig) (cpkgs []common
 					cpkg.Release = int(record.Field.Value.(uint64))
 				case stone1.Depends:
 					dep := record.Field.String()
-					if slices.Contains(badProviders[:], dep) {
-						break
-					}
-					if tos, ok := abconfig.Solver.Move[dep]; ok {
-						for _, to := range tos {
-							cpkgs[nameToIdx[to]].BuildDeps = append(cpkgs[nameToIdx[to]].BuildDeps, dep)
+					if !slices.Contains(badProviders[:], dep) {
+						if tos, ok := abconfig.Solver.Move[dep]; ok {
+							for _, to := range tos {
+								cpkgs[nameToIdx[to]].BuildDeps = append(cpkgs[nameToIdx[to]].BuildDeps, dep)
+							}
+						} else {
+							cpkg.BuildDeps = append(cpkg.BuildDeps, dep)
 						}
-					} else {
-						cpkg.BuildDeps = append(cpkg.BuildDeps, dep)
 					}
 				case stone1.Provides:
 					cpkg.Provides = append(cpkg.Provides, record.Field.String())
