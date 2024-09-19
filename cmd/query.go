@@ -157,9 +157,8 @@ func runQuery(cmd *cobra.Command, args []string) {
 				}
 				fmt.Println(cycle.Chain[0].Show(showSub, true))
 			}
-		} else {
-			waterlog.Fatalf("Failed to query order: %s\n", err)
 		}
+		waterlog.Fatalf("Failed to query order: %s\n", err)
 	}
 
 	if tiers {
