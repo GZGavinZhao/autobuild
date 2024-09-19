@@ -203,6 +203,7 @@ func ParsePackage(dir string) (pkgs []Package, err error) {
 
 	slices.Sort(pkg.BuildDeps)
 	slices.Sort(pkg.Provides)
+	slices.Sort(pkg.Ignores)
 
 	return
 }

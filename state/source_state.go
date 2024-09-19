@@ -59,6 +59,17 @@ func (s *SourceState) buildGraph() {
 	for pkgIdx, pkg := range s.packages {
 		for _, dep := range pkg.BuildDeps {
 			depIdx, depFound := s.pvdToPkgIdx[dep]
+
+			// Check if this package or any of its providers are requested to be
+			// ignored
+			for _, ignore := range pkg.Ignores {
+				depPkg := s.packages[depIdx]
+				if depPkg.Source == ignore || slices.Contains(depPkg.Names, ignore) || slices.Contains(depPkg.Provides, ignore) {
+					waterlog.Debugf("Dropping dependency %s (requested by %s) due to ignore %s\n", pkg.Show(true, false), dep, ignore)
+					continue
+				}
+			}
+
 			if !depFound {
 				waterlog.Warnf("Dependency %s of package %s is not found!\n", dep, pkg.Show(true, false))
 			} else if pkgIdx != depIdx {

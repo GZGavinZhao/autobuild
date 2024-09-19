@@ -139,6 +139,9 @@ func ParseManifest(path string, abconfig config.AutobuildConfig) (cpkgs []common
 
 		slices.Sort(cpkgs[idx].Provides)
 		cpkgs[idx].Provides = utils.Uniq2(cpkgs[idx].Provides)
+
+		slices.Sort(cpkgs[idx].Ignores)
+		cpkgs[idx].Ignores = utils.Uniq2(cpkgs[idx].Ignores)
 	}
 
 	return
