@@ -77,6 +77,11 @@ func execQuery(state st.State, queries []string) (res [][]common.Package, err er
 			}
 		}
 
+		if len(ids) == 0 {
+			err = fmt.Errorf("Unable to find package or provider %s", query)
+			return
+		}
+
 		for _, idx := range ids {
 			if idx < 0 {
 				err = fmt.Errorf("Unable to find package %s", query)
