@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/GZGavinZhao/autobuild/state"
+	"github.com/jwalton/gchalk"
 	"github.com/spf13/cobra"
 )
 
@@ -58,18 +59,17 @@ func runDiff(cmd *cobra.Command, args []string) {
 	for _, diff := range changes {
 		name := newState.Packages()[diff.Idx].Source
 
-		// TODO: probably shouldn't use logging for this!
 		if diff.OldRelNum == 0 {
-			slog.Info(fmt.Sprintf("New: %s: %s-%d", name, diff.Ver, diff.RelNum))
+			fmt.Println(gchalk.WithBgGreen().Black("    NEW    "), name, diff.Show(true))
 		} else if diff.RelNum > diff.OldRelNum {
-			slog.Info(fmt.Sprintf("Rebuild/Change: %s: %s-%d -> %s-%d", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum))
+			fmt.Println(gchalk.WithBgGreen().Black("  UPDATED  "), name, diff.Show(true))
 		} else if diff.RelNum < diff.OldRelNum {
 			if strictDiff {
-				slog.Warn(fmt.Sprintf("Outdated: %s: %s-%d <- %s-%d", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum))
+				fmt.Println(gchalk.WithBgYellow().Black(" DOWNGRADE "), name, diff.Show(true))
 			}
 		} else if diff.Ver != diff.OldVer {
 			if strictDiff {
-				slog.Warn(fmt.Sprintf("Different version but same relno: %s: %s-%d -> %s-%d", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum))
+				fmt.Println(gchalk.WithBgRed().Black("  UNSOUND  "), name, diff.Show(true))
 			}
 		}
 	}
