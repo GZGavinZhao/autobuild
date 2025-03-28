@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/go-git/go-git/v5"
 	// "github.com/go-git/go-git/v5/config"
 	// "github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -22,7 +22,7 @@ const (
 	host = "build.getsol.us"
 )
 
-func Publish(pkg common.Package, prePush bool) (job Job, err error) {
+func Publish(pkg state.Package, prePush bool) (job Job, err error) {
 	root := pkg.Root
 	relp, err := filepath.Rel(root, pkg.Path)
 	if err != nil {
@@ -104,15 +104,15 @@ func Publish(pkg common.Package, prePush bool) (job Job, err error) {
 	args := []string{
 		fmt.Sprintf("%s@%s", user, host),
 		"build",
-		pkg.Name,
-		fmt.Sprintf("%s-%s-%d", pkg.Name, pkg.Version, pkg.Release),
+		pkg.Source,
+		fmt.Sprintf("%s-%s-%d", pkg.Source, pkg.Version, pkg.Release),
 		relp,
 		ref.Hash().String(),
 		"YnkgYXV0b2J1aWxk", // "by autobuild"
 	}
 	cmd := exec.Command("ssh", args...)
 	if output, err = cmd.Output(); err != nil {
-		err = fmt.Errorf("push.Publish: failed to publish package %s using args %q: %w", pkg.Name, args, err)
+		err = fmt.Errorf("push.Publish: failed to publish package %s using args %q: %w", pkg.Source, args, err)
 		return
 	}
 

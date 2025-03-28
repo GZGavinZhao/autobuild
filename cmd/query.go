@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/DataDrake/waterlog"
-	"github.com/GZGavinZhao/autobuild/common"
+	"github.com/GZGavinZhao/autobuild/state"
 	st "github.com/GZGavinZhao/autobuild/state"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/spf13/cobra"
@@ -58,7 +58,7 @@ func init() {
 	cmdQuery.Flags().BoolVar(&showSub, "show-sub", false, "show the subpackages that a node represents instead of just the recipe name")
 }
 
-func execQuery(state st.State, queries []string) (res [][]common.Package, err error) {
+func execQuery(state st.State, queries []string) (res [][]state.Package, err error) {
 	depGraph := state.DepGraph()
 	if depGraph == nil {
 		err = errors.New("Adjacency map for dependency graph is nil")

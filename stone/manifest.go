@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/config"
+	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/serpent-os/libstone-go"
 	"github.com/serpent-os/libstone-go/stone1"
@@ -19,19 +19,19 @@ var (
 	badProviders = [...]string{"soname(libz.so.1(x86))", "soname(libclang.so.15(x86_64))", "soname(libc.so.6(386))"}
 )
 
-func ParseManifest(path string, abconfig config.AutobuildConfig) (cpkgs []common.Package, err error) {
+func ParseManifest(path string, abconfig config.AutobuildConfig) (cpkgs []state.Package, err error) {
 	// Prepare the `cpkg`-s that result from splitting.
 	// `cpkgs[0]` is the default cpkg to read info into.
 	// Starting from index 1 are the `cpkg` that are
 	// `split`-ted
-	cpkgs = append(cpkgs, common.Package{
+	cpkgs = append(cpkgs, state.Package{
 		Ignores: abconfig.Solver.Ignore,
 	})
 	nameToIdx := make(map[string]int)
 
 	for _, split := range abconfig.Solver.Split {
 		nameToIdx[split] = len(cpkgs)
-		cpkgs = append(cpkgs, common.Package{
+		cpkgs = append(cpkgs, state.Package{
 			Ignores: abconfig.Solver.Ignore,
 		})
 	}
@@ -72,7 +72,7 @@ func ParseManifest(path string, abconfig config.AutobuildConfig) (cpkgs []common
 		// WARNING:
 		// We rely on the convention that the first field in meta is Name, so we
 		// know which splitted package this should belong to.
-		var cpkg *common.Package
+		var cpkg *state.Package
 		for rdr.NextRecord() {
 			switch record := rdr.Record.(type) {
 			case *stone1.MetaRecord:

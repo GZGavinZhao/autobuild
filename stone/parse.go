@@ -12,12 +12,12 @@ import (
 	// "slices"
 
 	_ "github.com/DataDrake/waterlog"
-	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/config"
+	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/GZGavinZhao/autobuild/utils"
 )
 
-func ParsePackage(path string, abconfig config.AutobuildConfig) (cpkgs []common.Package, err error) {
+func ParsePackage(path string, abconfig config.AutobuildConfig) (cpkgs []state.Package, err error) {
 	manifestPath := filepath.Join(path, "manifest.x86_64.bin")
 
 	// var abConfig config.AutobuildConfig
@@ -75,14 +75,14 @@ func ParsePackage(path string, abconfig config.AutobuildConfig) (cpkgs []common.
 		// TODO: the below is much more incomplete than the .bin parsing.
 		// We may need to fallback to `.yml` parsing in the case of inspecting
 		// build order before a package is build.
-		cpkg := common.Package{
+		cpkg := state.Package{
 			Path:      stonePath,
 			Names:     []string{spkg.Name},
 			Source:    spkg.Name,
 			Version:   spkg.Version,
 			Release:   spkg.Release,
 			BuildDeps: append(spkg.BuildDeps, spkg.CheckDeps...),
-			Synced:    false,
+			// Synced:    false,
 		}
 
 		cpkg.BuildDeps = append(cpkg.BuildDeps, spkg.CollectRunDeps()...)

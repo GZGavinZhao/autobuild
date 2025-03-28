@@ -10,6 +10,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const ( 
+	ConfigFile = "autobuild.yaml"
+)
+
 type AutobuildConfig struct {
 	Ignore bool         `yaml:"ignore"`
 	Solver SolverConfig `yaml:"solver"`

@@ -9,6 +9,11 @@ import (
 	"os"
 )
 
+const (
+	YmlFile = "package.yml"
+	PspecFile = "pspec_x86_64.xml"
+)
+
 type PackageYML struct {
 	Name        string    `yaml:"name"`
 	Version     string    `yaml:"version"`

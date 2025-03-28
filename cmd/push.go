@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"github.com/DataDrake/waterlog"
-	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/spf13/cobra"
 )
@@ -52,10 +51,10 @@ func runPush(cmd *cobra.Command, args []string) {
 	}
 	waterlog.Goodln("Successfully parsed new state!")
 
-	bumped := []common.Package{}
+	bumped := []state.Package{}
 	bset := make(map[int]bool)
-	outdated := []common.Package{}
-	bad := []common.Package{}
+	outdated := []state.Package{}
+	bad := []state.Package{}
 
 	waterlog.Infoln("Diffing...")
 	var changes []state.Diff
@@ -127,7 +126,7 @@ func runPush(cmd *cobra.Command, args []string) {
 	//}
 
 	//// Check that the dependencies of every package already exist
-	//var unresolved []common.Package
+	//var unresolved []state.Package
 	//for _, pkg := range bumped {
 	//	// TODO: we should probably just be able to call pkg.Resolved?
 	//	if len(pkg.Resolve(newState.NameToSrcIdx(), newState.Packages())) > 0 {

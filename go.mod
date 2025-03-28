@@ -1,31 +1,28 @@
 module github.com/GZGavinZhao/autobuild
 
-go 1.21
+go 1.21.0
 
-toolchain go1.21.6
+toolchain go1.24.1
 
 require (
 	github.com/DataDrake/waterlog v1.2.0
-	github.com/briandowns/spinner v1.23.0
 	github.com/charlievieth/fastwalk v1.0.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dominikbraun/graph v0.23.0
-	github.com/fatih/color v1.16.0
 	github.com/getsolus/libeopkg v0.1.1-0.20230924201845-7f2598d34467
+	github.com/jwalton/gchalk v1.3.0
 	github.com/serpent-os/libstone-go v0.0.0-20240610023118-0ce587b36585
 	github.com/spf13/cobra v1.8.0
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	github.com/zeebo/blake3 v0.2.3
+	gitlab.com/slxh/go/powerline v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/jwalton/gchalk v1.3.0 // indirect
 	github.com/jwalton/go-supportscolor v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/term v0.15.0 // indirect
 )

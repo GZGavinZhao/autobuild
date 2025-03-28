@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/DataDrake/waterlog"
-	"github.com/GZGavinZhao/autobuild/common"
 	"github.com/GZGavinZhao/autobuild/utils"
 	"github.com/yourbasic/graph"
 )
@@ -21,23 +20,20 @@ var (
 )
 
 type State interface {
-	Packages() []common.Package
+	Packages() []Package
 	SrcToPkgIds() map[string][]int
 	PvdToPkgIdx() map[string]int
 	DepGraph() *graph.Immutable
-	// GetPackage(string) (common.Package, int)
-	// GetPackageIdx(string) int
-	// PackageExists(string) bool
 }
 
 func GetSourceIds(s State, name string) []int {
 	return s.SrcToPkgIds()[name]
 }
 
-func GetPackage(s State, pvd string) (common.Package, int) {
+func GetPackage(s State, pvd string) (Package, int) {
 	idx, ok := s.PvdToPkgIdx()[pvd]
 	if !ok {
-		return common.Package{}, -1
+		return Package{}, -1
 	} else {
 		return s.Packages()[idx], idx
 	}
@@ -73,8 +69,11 @@ func LoadState(tpath string) (state State, err error) {
 		state, err = LoadSource(splitted[1])
 	} else if splitted[0] == "bin" {
 		state, err = LoadBinary(splitted[1])
+	} else if splitted[0] == "repo" {
+		err = errors.ErrUnsupported
 	} else {
-		state, err = LoadEopkgRepo(splitted[1])
+		// state, err = LoadEopkgRepo(splitted[1])
+		err = errors.ErrUnsupported
 	}
 
 	return
@@ -117,7 +116,7 @@ func Changed(old *State, cur *State) (res []Diff) {
 	return
 }
 
-func QueryOrder(state State, choose func(int) bool) (res [][]common.Package, err error) {
+func QueryOrder(state State, choose func(int) bool) (res [][]Package, err error) {
 	depGraph := state.DepGraph()
 	if depGraph == nil {
 		waterlog.Fatalf("Failed to obtain adjacency map for dependency graph: %s\n", err)
@@ -154,7 +153,7 @@ func QueryOrder(state State, choose func(int) bool) (res [][]common.Package, err
 
 			thisCycle := Cycle{}
 
-			thisCycle.Members = make([]common.Package, len(cycle))
+			thisCycle.Members = make([]Package, len(cycle))
 			for idx, nodeIdx := range cycle {
 				thisCycle.Members[idx] = state.Packages()[nodeIdx]
 			}
@@ -176,7 +175,7 @@ func QueryOrder(state State, choose func(int) bool) (res [][]common.Package, err
 				return
 			}
 
-			thisCycle.Chain = make([]common.Package, len(depPath))
+			thisCycle.Chain = make([]Package, len(depPath))
 			for idx, nodeIdx := range depPath {
 				thisCycle.Chain[idx] = state.Packages()[nodeIdx]
 			}
@@ -193,7 +192,7 @@ func QueryOrder(state State, choose func(int) bool) (res [][]common.Package, err
 	// appear in the topological sort output.
 	for tIdx, tier := range order {
 		tier = utils.Filter(tier, choose)
-		res = append(res, make([]common.Package, len(tier)))
+		res = append(res, make([]Package, len(tier)))
 		for idx, pkgIdx := range tier {
 			res[tIdx][idx] = state.Packages()[pkgIdx]
 		}

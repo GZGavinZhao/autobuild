@@ -5,11 +5,14 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
 	"runtime/debug"
 
 	"github.com/DataDrake/waterlog"
 	"github.com/DataDrake/waterlog/format"
 	"github.com/spf13/cobra"
+	"gitlab.com/slxh/go/powerline"
 )
 
 var (
@@ -31,10 +34,20 @@ var (
 			waterlog.SetFormat(format.Min)
 			if quiet {
 				waterlog.SetLevel(0)
+				// slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+				slog.SetDefault(slog.New(powerline.NewHandler(os.Stderr, &powerline.HandlerOptions{
+					Level: slog.LevelError,
+				})))
 			} else if verbose {
 				waterlog.SetLevel(7)
+				slog.SetDefault(slog.New(powerline.NewHandler(os.Stderr, &powerline.HandlerOptions{
+					Level: slog.LevelDebug,
+				})))
 			} else {
 				waterlog.SetLevel(6)
+				slog.SetDefault(slog.New(powerline.NewHandler(os.Stderr, &powerline.HandlerOptions{
+					Level: slog.LevelInfo,
+				})))
 			}
 		},
 		Version: "0.0.0+" + GitCommit,
