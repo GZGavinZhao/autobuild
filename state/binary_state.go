@@ -5,13 +5,9 @@
 package state
 
 import (
-	// "encoding/xml"
-	// "fmt"
-	// "net/http"
-	//
-	// "github.com/getsolus/libeopkg/index"
-	// "github.com/ulikunitz/xz"
+	"errors"
 	"github.com/yourbasic/graph"
+	"path/filepath"
 )
 
 type BinaryState struct {
@@ -38,45 +34,25 @@ func (s *BinaryState) DepGraph() *graph.Immutable {
 	return s.depGraph
 }
 
-func (s *BinaryState) BuildGraph() {
-	panic("Not Implmeneted!")
-}
+func LoadBinary(path string) (st *BinaryState, err error) {
+	ext := filepath.Ext(path)
 
-func LoadBinary(tpath string) (st *BinaryState, err error) {
+	if ext == ".xml" {
+		st, err = loadEopkgIndex(path)
+	} else if ext == ".stone" {
+		err = errors.New("Not implemented")
+	} else {
+		err = errors.ErrUnsupported
+	}
+
 	return
 }
 
-// func LoadEopkgIndex(i *index.Index) (state *BinaryState, err error) {
-// 	// panic("Not Implmeneted!")
-//
-// 	state = &BinaryState{}
-// 	state.packages = make([]Package, len(i.Packages))
-// 	state.pvdToPkgIdx = make(map[string]int)
-// 	state.srcToPkgIds = make(map[string][]int)
-//
-// 	// Iterate through the eopkg index and check if there are version/release
-// 	// discrepancies between the source repository and the binary index.
-// 	for idx, ipkg := range i.Packages {
-// 		pvd := fmt.Sprintf("name(%s)", ipkg.Name)
-// 		if ext, ok := state.pvdToPkgIdx[pvd]; ok {
-// 			err = fmt.Errorf("Duplicate provider %s, %s provides but already provided by %s", pvd, ipkg.Name, state.packages[ext].Show(true, false))
-// 			return
-// 		}
-//
-// 		var pkg Package
-// 		pkg, err = common.ParseIndexPackage(ipkg)
-// 		if err != nil {
-// 			return
-// 		}
-//
-// 		state.pvdToPkgIdx[pvd] = idx
-// 		state.srcToPkgIds[ipkg.Source.Name] = append(state.srcToPkgIds[ipkg.Source.Name], idx)
-// 		state.packages[idx] = pkg
-// 	}
-//
-// 	return
-// }
-//
+func LoadRepo(repoName string) (st *BinaryState, err error) {
+	st, err = loadEopkgRepo(repoName)
+	return
+}
+
 // func LoadBinary(path string) (state *BinaryState, err error) {
 // 	eopkgIndex, err := index.Load(path)
 // 	if err != nil {
@@ -87,28 +63,3 @@ func LoadBinary(tpath string) (st *BinaryState, err error) {
 // 	return
 // }
 //
-// func LoadEopkgRepo(name string) (state *BinaryState, err error) {
-// 	indexUrl := fmt.Sprintf("https://packages.getsol.us/%s/eopkg-index.xml.xz", name)
-// 	resp, err := http.Get(indexUrl)
-// 	if err != nil {
-// 		err = fmt.Errorf("Failed to fetch binary index from url %s: %w", indexUrl, err)
-// 		return
-// 	}
-//
-// 	r, err := xz.NewReader(resp.Body)
-// 	if err != nil {
-// 		err = fmt.Errorf("Failed to create XZ reader with binary index from url %s: %w", indexUrl, err)
-// 		return
-// 	}
-//
-// 	dec := xml.NewDecoder(r)
-// 	var i index.Index
-// 	err = dec.Decode(&i)
-// 	if err != nil {
-// 		err = fmt.Errorf("Failed to decode binary index from url %s: %w", indexUrl, err)
-// 		return
-// 	}
-//
-// 	state, err = LoadEopkgIndex(&i)
-// 	return
-// }

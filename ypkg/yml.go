@@ -5,12 +5,14 @@
 package ypkg
 
 import (
-	"gopkg.in/yaml.v3"
+	"fmt"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	YmlFile = "package.yml"
+	YmlFile   = "package.yml"
 	PspecFile = "pspec_x86_64.xml"
 )
 
@@ -39,5 +41,31 @@ func Load(path string) (pkg PackageYML, err error) {
 	defer raw.Close()
 	dec := yaml.NewDecoder(raw)
 	err = dec.Decode(&pkg)
+	return
+}
+
+func (p *PackageYML) ParseRunDeps() (res []string, err error) {
+	if p.RunDeps.Kind == 0 {
+		return
+	} else if p.RunDeps.Kind == yaml.SequenceNode {
+		for _, children := range p.RunDeps.Content {
+			if children.Kind == yaml.ScalarNode {
+				res = append(res, children.Value)
+			} else if children.Kind == yaml.MappingNode {
+				for _, subpkg := range children.Content {
+					for _, rundep := range subpkg.Content {
+						if rundep.Kind != yaml.ScalarNode {
+							continue
+						}
+
+						res = append(res, rundep.Value)
+					}
+				}
+			}
+		}
+	} else {
+		err = fmt.Errorf("ParseRunDeps: invalid YAML node type %q, content %s", p.RunDeps.Kind, p.RunDeps.Value)
+	}
+
 	return
 }

@@ -5,6 +5,9 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/spf13/cobra"
@@ -80,7 +83,11 @@ func runPush(cmd *cobra.Command, args []string) {
 			})
 		}
 	} else {
-		changes = state.Changed(&oldState, &newState)
+		changes, err = state.Changed(&oldState, &newState)
+		if err != nil {
+			slog.Error("Failed to diff between states", "err", err)
+			os.Exit(1)
+		}
 	}
 
 	for _, diff := range changes {

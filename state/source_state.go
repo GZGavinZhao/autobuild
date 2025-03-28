@@ -134,7 +134,7 @@ func LoadSource(dir string) (state *SourceState, err error) {
 		// stoneFile := filepath.Join(pkgpath, "stone.yaml")
 
 		if ypkgPackageExists(pkgdir) {
-			if pkgs, err = loadYpkgPackage(pkgdir); err != nil {
+			if pkgs, err = loadYpkgPackage(pkgdir, &abConfig); err != nil {
 				return fmt.Errorf("Failed to parse ypkg package %s: %w", pkgdir, err)
 			}
 			// } else if utils.PathExists(stoneFile) {

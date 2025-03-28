@@ -5,7 +5,10 @@
 package cmd
 
 import (
-	"github.com/DataDrake/waterlog"
+	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/GZGavinZhao/autobuild/state"
 	"github.com/spf13/cobra"
 )
@@ -33,31 +36,40 @@ func runDiff(cmd *cobra.Command, args []string) {
 
 	oldState, err := state.LoadState(oldTPath)
 	if err != nil {
-		waterlog.Fatalf("Failed to load old state %s: %s\n", oldTPath, err)
+		slog.Error("Failed to load old state", "tpath", oldTPath, "err", err)
+		os.Exit(1)
 	}
-	waterlog.Goodln("Successfully parsed old state!")
+	slog.Info("Successfully parsed old state!")
 
 	newState, err = state.LoadState(newTPath)
 	if err != nil {
-		waterlog.Fatalf("Failed to load new state %s: %s\n", newTPath, err)
+		slog.Error("Failed to load new state", "tpath", newTPath, "err", err)
+		os.Exit(1)
 	}
-	waterlog.Goodln("Successfully parsed new state!")
+	slog.Info("Successfully parsed new state!")
 
-	waterlog.Infoln("Diffing...")
-	for _, diff := range state.Changed(&oldState, &newState) {
+	slog.Info("Diffing...")
+	changes, err := state.Changed(&oldState, &newState)
+	if err != nil {
+		slog.Error("Failed to diff between states", err, "error")
+		os.Exit(1)
+	}
+
+	for _, diff := range changes {
 		name := newState.Packages()[diff.Idx].Source
 
+		// TODO: probably shouldn't use logging for this!
 		if diff.OldRelNum == 0 {
-			waterlog.Infof("New: %s: %s-%d\n", name, diff.Ver, diff.RelNum)
+			slog.Info(fmt.Sprintf("New: %s: %s-%d", name, diff.Ver, diff.RelNum))
 		} else if diff.RelNum > diff.OldRelNum {
-			waterlog.Infof("Rebuild/Change: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+			slog.Info(fmt.Sprintf("Rebuild/Change: %s: %s-%d -> %s-%d", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum))
 		} else if diff.RelNum < diff.OldRelNum {
 			if strictDiff {
-				waterlog.Warnf("Outdated: %s: %s-%d <- %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+				slog.Warn(fmt.Sprintf("Outdated: %s: %s-%d <- %s-%d", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum))
 			}
 		} else if diff.Ver != diff.OldVer {
 			if strictDiff {
-				waterlog.Warnf("Different version but same relno: %s: %s-%d -> %s-%d\n", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum)
+				slog.Warn(fmt.Sprintf("Different version but same relno: %s: %s-%d -> %s-%d", name, diff.OldVer, diff.OldRelNum, diff.Ver, diff.RelNum))
 			}
 		}
 	}

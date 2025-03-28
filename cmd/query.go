@@ -7,6 +7,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/DataDrake/waterlog"
 	"github.com/GZGavinZhao/autobuild/state"
@@ -131,7 +132,7 @@ func runQuery(cmd *cobra.Command, args []string) {
 	if err != nil {
 		waterlog.Fatalf("Failed to parse state: %s\n", err)
 	}
-	waterlog.Goodln("Successfully parsed state!")
+	slog.Info("Successfully parsed state!")
 
 	var queries []string
 	if len(args) < 2 {

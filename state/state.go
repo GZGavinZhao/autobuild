@@ -7,6 +7,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -70,7 +71,7 @@ func LoadState(tpath string) (state State, err error) {
 	} else if splitted[0] == "bin" {
 		state, err = LoadBinary(splitted[1])
 	} else if splitted[0] == "repo" {
-		err = errors.ErrUnsupported
+		state, err = LoadRepo(splitted[1])
 	} else {
 		// state, err = LoadEopkgRepo(splitted[1])
 		err = errors.ErrUnsupported
@@ -79,19 +80,62 @@ func LoadState(tpath string) (state State, err error) {
 	return
 }
 
-func Changed(old *State, cur *State) (res []Diff) {
-	for src, ids := range (*cur).SrcToPkgIds() {
-		idx := ids[0]
+func ChooseLatestSource(st *State, source string) (res int, err error) {
+	ids, found := (*st).SrcToPkgIds()[source]
+	if !found {
+		err = fmt.Errorf("ChooseLatestSource: %s doesn't exist in state", source)
+		return
+	}
+
+	res = ids[0]
+	resPkg := (*st).Packages()[res]
+
+	for _, id := range ids {
+		curPkg := (*st).Packages()[id]
+
+		if curPkg.Release == resPkg.Release && curPkg.Version == resPkg.Version {
+
+		} else if resPkg.Release != curPkg.Release {
+			var oldPkg, newPkg Package
+			if resPkg.Release < curPkg.Release {
+				oldPkg = resPkg
+				newPkg = curPkg
+
+				res = id
+				resPkg = curPkg
+			} else {
+				oldPkg = curPkg
+				newPkg = resPkg
+			}
+
+			slog.Debug("Same source produces different release, preferring newer", "old", oldPkg.Show(true, false), "new", newPkg.Show(true, false), "oldRel", oldPkg.Release, "newRel", newPkg.Release, "oldVer", oldPkg.Version, "newVer", newPkg.Version)
+		} else if resPkg.Version != curPkg.Version {
+			slog.Error("Same source produces same release with different versions", "left", resPkg.Show(true, false), "right", curPkg.Show(true, false), "er", resPkg.Version, "leftRel", resPkg.Release, "rightRel", curPkg.Release)
+			err = fmt.Errorf("ChooseLatestSource: %s produces packages with different relnos", source)
+			return
+		}
+	}
+
+	return
+}
+
+func Changed(old *State, cur *State) (res []Diff, err error) {
+	for src, _ := range (*cur).SrcToPkgIds() {
+		var idx int
+		idx, err = ChooseLatestSource(cur, src)
+		if err != nil {
+			return
+		}
 		pkg := (*cur).Packages()[idx]
+
 		// WARNING:
 		// we assume that packages that correspond to the same source recipe
 		// always have the same release number and version.
 		//
 		// In general, this should always hold, but we should probably check it
 		// somewhere.
-		oldIds, found := (*old).SrcToPkgIds()[src]
 
-		if !found {
+		if _, found := (*old).SrcToPkgIds()[src]; !found {
 			res = append(res, Diff{
 				Idx:    idx,
 				RelNum: pkg.Release,
@@ -100,11 +144,17 @@ func Changed(old *State, cur *State) (res []Diff) {
 			continue
 		}
 
-		oldPkg := (*old).Packages()[oldIds[0]]
+		var oldIdx int
+		oldIdx, err = ChooseLatestSource(old, src)
+		if err != nil {
+			return res, err
+		}
+
+		oldPkg := (*old).Packages()[oldIdx]
 		if oldPkg.Release != pkg.Release || oldPkg.Version != pkg.Version {
 			res = append(res, Diff{
 				Idx:       idx,
-				OldIdx:    oldIds[0],
+				OldIdx:    oldIdx,
 				RelNum:    pkg.Release,
 				OldRelNum: oldPkg.Release,
 				Ver:       pkg.Version,
