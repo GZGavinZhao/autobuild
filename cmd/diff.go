@@ -40,14 +40,14 @@ func runDiff(cmd *cobra.Command, args []string) {
 		slog.Error("Failed to load old state", "tpath", oldTPath, "err", err)
 		os.Exit(1)
 	}
-	slog.Info("Successfully parsed old state!")
+	slog.Info("Successfully loaded old state!")
 
 	newState, err = state.LoadState(newTPath)
 	if err != nil {
 		slog.Error("Failed to load new state", "tpath", newTPath, "err", err)
 		os.Exit(1)
 	}
-	slog.Info("Successfully parsed new state!")
+	slog.Info("Successfully loaded new state!")
 
 	slog.Info("Diffing...")
 	changes, err := state.Changed(&oldState, &newState)
